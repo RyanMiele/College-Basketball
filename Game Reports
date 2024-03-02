@@ -1,0 +1,341 @@
+library(tidyverse)
+library(ggimage)
+library(gt)
+library(hockeyR)
+library(ggrepel)
+#library(jthomasmock/gtExtras)
+library(scales)
+library(ggthemes)
+library(ggplot2)
+library(dplyr)
+library(gganimate)
+library(bigballR)
+library(ncaahoopR)
+library(cbbdata)
+library(gtExtras)
+library(datapasta)
+library(lubridate)
+library(vip)
+library(viridis)
+library(hrbrthemes)
+library(sportyR)
+library(mlbplotR)
+library(baseballr)
+library(devtools)
+library(hockeyR)
+library(shiny)
+library(hoopR)
+library(ggtext)    
+library(patchwork) 
+library(paletteer) 
+library(hexbin)
+library(shinydashboard)
+library(shinyWidgets)
+library(reactable)
+library(reactablefmtr)
+library(shinythemes)
+library(tictoc)
+library(nbastatR)
+library(cbbdata)
+library(cbbplotR)
+library(zoo)
+library(cowplot)
+library(magick)
+
+devtools::install_github("lbenz730/ncaahoopR")
+
+devtools::install_github("jflancer/bigballR")
+getwd()
+
+ids <- ids
+  
+  ids<- data(ids)
+unique(ids)
+  
+  
+  
+roster <- get_roster("Bucknell")%>%
+  reframe(name, player_image)%>%
+  rename(player = name)
+rosters <- get_roster("Loyola (MD)")%>%
+  reframe(name, player_image)%>%
+  rename(player = name)
+
+final_roster <- rbind(roster, rosters)
+
+final_roster$First <- substr(final_roster$player, 1, 1)
+
+library(tidyr)
+final_roster <- extract(final_roster,player,c("First_Name","Last_Name"), "([^ ]+) (.*)")
+
+final_roster$player <- paste(final_roster$First,". ",final_roster$Last_Name)
+
+
+roster <- roster 
+roster[roster == "Ian Motta"] <- "I. Motta"
+roster[roster == "Jack Forrest"] <- "J. Forrest"
+roster[roster == "Elvin Edmonds IV"] <- "E. Edmonds IV"
+roster[roster == "Brady Muller"] <- "B. Muller"
+roster[roster == "Josh Adoh"] <- "J. Adoh"
+roster[roster == "Noah Williamson"] <- "N. Williamson"
+roster[roster == "Josh Bascoe"] <- "J. Bascoe"
+roster[roster == "Brandon McCreesh"] <- "B. McCreesh"
+roster[roster == "Quin Berger"] <- "Q. Berger"
+roster[roster == "Ruot Bijiek"] <- "R. Bijiek"
+roster[roster == "Pip Ajayi"] <- "P. Ajayi"
+roster[roster == "Josh Fulton"] <- "J. Fulton"
+roster[roster == "Patrick O'Brien"] <- "P. O'Brien"
+
+Richmond_pbp <- get_pbp_game(401594489, extra_parse = T)
+
+
+box<- get_boxscore(401594493)
+
+
+
+
+Richmond_game <- as.data.frame(box$Bucknell)%>%
+  mutate(Game_Score = PTS + .4*FGM - .7*FGA - .4*(FTA-FTM) + .7*OREB +.3*DREB+ STL+.7*AST + .7*BLK -.4*PF-TO,
+         points_per_shot = round(PTS/FGA,2))%>%
+  arrange(-Game_Score)
+
+Opposing_team_game <- as.data.frame(box$`Loyola Maryland`)%>%
+  mutate(Game_Score = PTS + .4*FGM - .7*FGA - .4*(FTA-FTM) + .7*OREB +.3*DREB+ STL+.7*AST + .7*BLK -.4*PF-TO,
+         points_per_shot = round(PTS/FGA,2))%>%
+  arrange(-Game_Score)
+
+total_boxscore <- rbind(Opposing_team_game, Richmond_game)
+
+
+total_boxscore <- total_boxscore[-1, ]%>%
+  reframe(player, team,position, Game_Score, points_per_shot)%>%
+  arrange(-Game_Score)
+
+
+total_boxscore <- total_boxscore[-1, ]
+
+
+
+
+
+
+Richmond_game <- Richmond_game[-1, ]%>%
+  reframe(player, Game_Score)
+
+
+format(xx, scientific=F)
+
+Richmond_game <- options(scipen=999)
+
+season_boxscore <- season_boxscore("Bucknell", season = "2023-24", aggregate = "average")%>%
+  mutate(Game_Score = PTS + .4*FGM - .7*FGA - .4*(FTA-FTM) + .7*OREB +.3*DREB+ STL+.7*AST + .7*BLK -.4*PF-TO,
+         Game_Score_per_min = Game_Score/MIN,
+          Offensive_Efficiency_Rating = PTS/FGA)
+  
+
+season_boxscore_last <- season_boxscore("Bucknell", season = "2022-23", aggregate = "total")%>%
+  mutate(Game_Score = PTS + .4*FGM - .7*FGA - .4*(FTA-FTM) + .7*OREB +.3*DREB+ STL+.7*AST + .7*BLK -.4*PF-TO,
+         Game_Score_per_min = Game_Score/MIN,
+         Offensive_Efficiency_Rating = PTS/FGA)
+
+
+season_boxscore <- rbind(season_boxscore, Richmond_game)
+
+Season_boxscore <- roster %>%
+  left_join(season_boxscore, by = "player")%>%
+  mutate(Tot_fga = FGA*GP)%>%
+  mutate(Tot_pts = PTS*GP)%>%
+  mutate(Tot_mins = MIN*GP)%>%
+  mutate(Offensive_Efficiency_Rating = Tot_pts/Tot_fga)%>%
+  mutate(Game_Score_per_game = (PTS + .4*FGM - .7*FGA - .4*(FTA-FTM) + .7*OREB +.3*DREB+ STL+.7*AST + .7*BLK -.4*PF-TO)/GP,
+         Game_Score_per_min = Game_Score/MIN)%>%
+  arrange(-Game_Score_per_game)%>%
+  filter(MIN >= 60)
+  reframe(player, player_image, MIN, Season_Game_Score, Game_Score_per_min,Offensive_Efficiency_Rating)
+
+
+Season_boxscore <- Season_boxscore[-3, ]
+Richmond_game <- Richmond_game[-3, ]
+Richmond_game <- Richmond_game[-10, ]
+
+
+Richmond_game <- season_boxscore%>%
+  left_join(Richmond_game, by = "player")
+
+Richmond_game <- Richmond_game[-3, ]
+Richmond_game <- Richmond_game[-6, ]
+Richmond_game <- Richmond_game[-8, ]
+
+ggplot(Richmond_game) +
+  geom_col(aes(x = Game_Score.y, y = fct_reorder(player, Game_Score.y)), size = 1, color = "orange", fill = "white") +
+  geom_point(aes(x = Game_Score.x, y = fct_reorder(player, Game_Score.x)),shape=23, fill="orange", color="blue", 
+             size=6)+
+  theme_minimal() +
+  theme(legend.position = "right", 
+        panel.grid.minor = element_blank(),
+        plot.background = element_rect(fill = "#141622"),
+        panel.background = element_rect(fill = "#141622", 
+                                        colour = "#141622",
+                                        size = 2, 
+                                        linetype = "solid"),
+        panel.grid.major = element_line(size = 0.5, 
+                                        linetype = 'solid',
+                                        color = "gray"),
+        axis.title.x = element_text(size = 22, 
+                                    face = "bold", 
+                                    color = "white"),
+        axis.title.y = element_text(size = 13, 
+                                    face = "bold", 
+                                    colour = "white"),
+        axis.text.x = element_text(color = "white", size = 22),
+        axis.text.y = element_text(color = "white", size = 22),
+        plot.title = element_text(face = "bold", 
+                                  colour = "white", 
+                                  size = 14),
+        plot.subtitle = element_text(colour = "white", 
+                                     size = 10),
+        plot.caption = element_text(colour = "white", 
+                                    size = 10),
+        plot.caption.position = "plot")+
+  labs(x = "Game Score",
+       y = "",
+       caption = "By Bucknell Analytics | Data: ncaahoopR",
+       title = "Bucknell Basketball Game Scores vs. Loyola MD (01/31/2024)",
+       subtitle = "Bars Represent Individual Game Score | Stars Represent Season Average Game Score")+
+  theme(plot.title = element_text(size = 30, face = "bold", hjust = 0.5))+
+  theme(plot.subtitle = element_text(size = 20, hjust = 0.5))
+
+
+
+
+
+Season_boxscore <- read.csv("PatLeaguePlayers.csv", header = TRUE, sep = ",")
+
+Season_boxscore%>%
+  ggplot(aes(x=OPOR, y=DPOR, label=Player)) + 
+  #scale_y_reverse()+
+  geom_hline(yintercept = mean(Season_boxscore$OPOR, linetype = "dashed", color = "white"))+ 
+  geom_vline(xintercept = mean(Season_boxscore$DPOR, linetype = "dashed", color = "white"))+
+  #annotate(geom = "text", label = "Lucky", x = -Inf, y = Inf, hjust = 0, vjust = 1)+
+  geom_point()+
+  #geom_image(aes(image = player_image), size = 0.1, asp = 16/9) +
+  #geom_text_repel(aes(label=player), size = 8) +
+  geom_label_repel(aes(label=Player), size = 3.5) +
+  theme_fivethirtyeight() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 22, hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(size = 18, hjust = 0.5),
+    plot.caption = element_text(size = 16),
+    axis.title.x = element_text(size=18),
+    axis.title.y = element_text(size=18),
+    axis.text = element_text(size = 14),
+    strip.text = element_text(size = 16, face = "bold"),
+    legend.text = element_text(size = 14)
+  )+
+  #theme_solarized()+
+  #theme_bw()+
+  #theme_economist() + scale_fill_economist()+
+  #theme_gray() +
+  #theme_minimal() +
+  labs(x = "Off Points over Replacement per Game",
+       y = "Def Points over Replacement per Game",
+       caption = "By Bucknell Analytics | Data: bartorvik.com",
+       title = "Individual Points Over Replacement",
+       subtitle = "Patriot League Basketball 2022-23")+
+  theme(plot.title = element_text(size = 18, face = "bold", hjust = 0.5))+
+  theme(plot.subtitle = element_text(size = 14, hjust = 0.5))
+
+
+
+Season_boxscore%>%
+  ggplot(aes(x=Game_Score_per_min, y=Offensive_Efficiency_Rating, label=player)) + 
+  #scale_y_reverse()+
+  geom_hline(yintercept = mean(Season_boxscore$Offensive_Efficiency_Rating, linetype = "dashed", color = "black"))+ 
+  geom_vline(xintercept = mean(Season_boxscore$Game_Score_per_min, linetype = "dashed", color = "black"))+
+  #annotate(geom = "text", label = "Lucky", x = -Inf, y = Inf, hjust = 0, vjust = 1)+
+  #geom_point()+
+  geom_image(aes(image = player_image), size = 0.1, asp = 16/9) +
+  #geom_text_repel(aes(label=player), size = 8) +
+  geom_label_repel(aes(label=player), size = 3.5, nudge_y = -.1, segment.color = NA) +
+  theme_fivethirtyeight() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(size = 22, hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(size = 18, hjust = 0.5),
+    plot.caption = element_text(size = 12),
+    axis.title.x = element_text(size=18),
+    axis.title.y = element_text(size=18),
+    axis.text = element_text(size = 14),
+    strip.text = element_text(size = 16, face = "bold"),
+    legend.text = element_text(size = 14)
+  )+
+  labs(x = "Game Score per Minute",
+       y = "Points per Shot",
+       caption = "By Bucknell Analytics | Data: ncaahoopR",
+       title = "Bucknell Player Efficiency",
+       subtitle = "2023-24 Season")+
+  theme(plot.title = element_text(size = 18, face = "bold", hjust = 0.5))+
+  theme(plot.subtitle = element_text(size = 14, hjust = 0.5))
+
+
+
+head(teamcolors)
+
+wp_chart(game_id =401594485, home_col = "orange", away_col = "purple", include_spread = F)
+
+game_flow(game_id = 401594485, home_col = "orange", away_col = "purple")
+
+wp_chart_new(401594486, home_col = "orange",away_col="blue",include_spread = FALSE) 
+
+
+gg_wp_chart(401587140, home_col = "orange", away_col = "gray")
+
+pbp <- get_pbp("St Bonaventure")
+assist_net(team = "Bucknell", "2021-2022")
+
+get_shot_locs(401365254)
+game_shot_chart(401365254, heatmap = T)
+
+HC <- get_pbp_game(401594493, extra_parse = T)
+
+HC <- HC%>%
+  mutate(time_into_game = if_else(half == 3, (2700 - secs_remaining)/60,(2400 - secs_remaining)/60))
+
+
+
+  ggplot(HC,aes(x = time_into_game, y = naive_win_prob)) +
+  geom_line()+
+  theme_minimal() +
+  geom_vline(xintercept = c(0, 20, 40), color = "black") +
+  geom_hline(yintercept = .5, color = "black")+
+  geom_hline(yintercept = c(0,.25,.75,1), linetype = "dashed",color = "black",alpha = .5)+
+  #geom_segment(x = -3600, xend = -x_max, y = 0.5, yend = 0.5, size = 0.75) +
+  #geom_image(x = x_score, y = 0.82, image = game$away_logo, size = 0.08, asp = 1.5) +
+  #geom_image(x = x_score, y = 0.18, image = game$home_logo, size = 0.08, asp = 1.5) +
+  geom_line(aes(color = ..y.. <= .5), size = 1) +
+  scale_color_manual(values = c("orange", "darkgreen")) +
+  scale_x_continuous(#trans = "reverse",
+                     minor_breaks = NULL,
+                     labels = c("Tip Off", "10 mins", "Half Time", "30 mins", "Regulation","Final"),
+                     #breaks = seq(3600, 0, -900),
+                     limits = c(0, 45)) +
+  scale_y_continuous(labels = c("Loyola 100%",
+                                "Loyola 75%",
+                                "50%",
+                                "Bucknell 75%",
+                                "Bucknell 100%"),
+                     breaks = c(0, 0.25, 0.5, 0.75, 1),
+                     limits = c(0, 1)) +
+  coord_cartesian(clip = "off") +
+  xlab("") +
+  ylab("") +
+  labs(title = "Win Probability Chart: Loyola MD @ Bucknell (01/31/2024)",
+       subtitle = "Bucknell 67 - Loyola MD 52",
+       caption = "By Bucknell Analytics | Data: ncaahoopR | Inspiration @LeeSharpNFL") +
+  theme(legend.position = "none",
+        axis.text.x = element_text(family = "Times",size=14),
+        axis.text.y = element_text(family = "Times",size=14),
+        axis.title.y = element_text(family = "Times",size=18))+
+  theme(plot.title = element_text(family = "Times",size = 30, face = "bold", hjust = 0.5))+
+    theme(plot.subtitle = element_text(family = "Times",size = 20, hjust = 0.5))
