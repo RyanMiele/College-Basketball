@@ -1,0 +1,1274 @@
+
+     
+     
+     
+     names(player_game)
+     
+     
+     game_stats <- cbd_torvik_game_stats(team = "Bucknell", year = 2024)
+     
+     game_stats <- cbd_torvik_game_stats(conf = "ACC", year = 2024)
+     
+     Pat_team_data <- cbd_torvik_ratings(year = 2024, conf = 'Pat', game_type = "conf")
+     
+     conf <- cbd_torvik_conf_factors(year = 2024)
+     
+     ken <- cbd_kenpom_ratings_archive(conf = "Pat",year = 2024)
+     
+     ken <- cbd_torvik_team_factors(year = 2024,game_type = "conf")
+     
+     
+     
+     
+     team_split <- cbd_torvik_team_split(year = 2024, team = "American",split = "game_result")
+     
+     player_game <- cbd_torvik_player_game(year = 2024)
+     
+     buck_player_game <- cbd_torvik_player_game(year = 2024,team = "Bucknell")
+     
+     player_split <- cbd_torvik_player_split(year = 2024, split = "result", team = "American")
+     
+     help(cbd_torvik_team_split)
+     
+     player_year <- cbd_torvik_player_season(year = 2024, team = "Bucknell")
+     
+     cbd_torvik_te
+     
+     Buck_pbp <- get_pbp(team = "Bucknell", season ="2023-24")
+     
+     all_pbp <- get_pbp(team = "all", season ="2023-24")
+     ids<- data(ids)
+     cbbdata::cbd_create_account(username = "RyanMiele", email = "ryancmiele@gmail.com", 
+                                 password = "Hughes86", confirm_password = "Hughes86")
+     
+     cbbdata::cbd_login(username = "RyanMiele", password = "Hughes86")
+    
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     library(zoo)
+     
+     
+     
+     
+     
+     
+     buck_game_stats <- game_stats%>%
+       filter(team == "Bucknell")%>%
+       # mutate(net_rating = adj_o - adj_d,
+       #        five_game_average = rollmean(adj_o, k = 3,fill = NA,align = "left"),
+       #        two_point_attempts = fga-tpa,
+       #        two_point_attempt_perc = two_point_attempts/fga)%>%
+       rename("Result" = result)%>%
+       group_by(Result)%>%
+       mutate(avg_3p = mean(two_point_attempt_perc))
+      
+     
+     ggplot(data = buck_game_stats, aes(date,off_to))+
+      geom_line()+
+       geom_point(aes(color = Result), size = 5)+
+       scale_y_reverse()+
+       geom_label_repel(aes(label=opp), size = 4)+
+       geom_hline(yintercept = 17.776, linetype = "dashed", color = "black")+
+       #geom_smooth(aes(alpha = .01),method = lm, se = FALSE, color = "black")+
+       stat_smooth(geom = "line",method = lm, alpha=0.5, se=FALSE, color = "blue")+
+       scale_color_manual(values = c("red","darkgreen"))+
+       #theme_minimal()+
+       theme_fivethirtyeight()+
+       labs(caption = "By Bucknell Analytics | Data: cbbdata",
+            title = "Bucknell Offensive Turnover Rate by Game",
+            subtitle = "2023-24 Season | Dashed Line D1 Average")+
+       theme(plot.title = element_text(size = 18, face = "bold", hjust = 0.5))+
+       theme(plot.subtitle = element_text(size = 12,hjust = 0.5))
+     
+     
+     
+     player_game <- cbd_torvik_player_game(year = 2024, team = "Bucknell")
+     
+     
+     bucknell_player <- player_game%>%
+       left_join(roster, by = "player")
+     
+       bucknell_player <- bucknell_player%>%
+         filter(player != "Alek Delev")%>%
+         mutate(FGA = two_a+three_a,
+                FGM = two_m+three_a,
+           game_score = round(pts + .4*FGM - .7*FGA - .4*(ftm-fta) + 
+                  .7*oreb +.3*dreb+ stl+.7*ast + .7*blk -.4*pf-tov,2))%>%
+           group_by(player)%>%
+         mutate(mean_game_score = mean(game_score))%>%
+          #mutate(five_game_average_gs = rollmean(game_score, k = 5,fill = NA,align = "right"))%>%
+         rename("Result" = result)
+       
+       player_name <- paste(bucknell_player$player, "Rolling 5 Game AverageGame Score")
+       
+       ggplot(data = bucknell_player, aes(date,game_score))+
+         geom_line()+
+         geom_point(aes(color = Result), size = 2)+
+         #scale_y_reverse()+
+         #geom_label_repel(aes(label=opp), size = 1.5)+
+         #stat_smooth(aes(x=date,y=game_score),alpha=0.5, se=FALSE, color = "black")+
+         geom_vline(xintercept = unclass(as.Date("2023-12-30")),linetype = "dashed", color = "black")+
+         geom_hline(yintercept = 0, linetype = "dashed", color = "black")+
+         #geom_hline(yintercept = mean_game_score, linetype = "dashed", color = "black")+
+         #geom_smooth(aes(alpha = .01),method = lm, se = FALSE, color = "black")+
+         #stat_smooth(geom = "line", alpha=0.5, se=FALSE, color = "blue")+
+         scale_color_manual(values = c("red","darkgreen"))+
+         #theme_minimal()+
+         theme_fivethirtyeight()+
+         labs(caption = "By Bucknell Analytics | Data: cbbdata",
+              title = "Bucknell Individual Game Scores Over Time",
+              subtitle = "2023-24 Season | Conf Play Begins After Dashed Line")+
+         theme(plot.title = element_text(family = "Times",size = 30, face = "bold", hjust = 0.5))+
+         theme(plot.subtitle = element_text(family = "Times",size = 22,hjust = 0.5))+
+         theme(strip.text = element_text(family = "Times",size=20))+
+         facet_wrap(~ player)
+       
+       
+       
+       bucknell_player <- bucknell_player[-95, ]
+       
+       
+       
+       
+       player_image <- bucknell_player$player_image
+       
+       library(magick) 
+       library(gapminder)
+     
+       install.packages("rsvg")
+       library(rsvg)
+       
+       install.packages("gganimate")
+       library(gganimate)
+       
+       install.packages("lubridate")
+       library(lubridate)
+       
+       ggplot(data = bucknell_player, aes(date,five_game_average_gs))+
+         #geom_line()+
+         geom_point(size = 5)+
+         #scale_y_reverse()+
+         geom_label_repel(aes(label=opp), size = 4)+
+         ylim(-2,20)+
+         #geom_image(aes(x = "2023-12-16",y = 20, image = player_image), size = 12, asp = 16/9)+
+         #annotation_raster(player_image, ymin = 17, ymax = 20, xmin = 2023-12-10, xmax = 
+                             #2023-12-15)+
+         #draw_image(bucknell_player$player_image, 
+                    #x = 2023-12-16, y = 15, width = 10, height = 10)+
+         stat_smooth(geom = "line", alpha=1, se=FALSE, color = "black")+
+         scale_color_manual(values = c("red","darkgreen"))+
+         #theme_minimal()+
+         theme_fivethirtyeight()+
+         labs(caption = "By Bucknell Analytics | Data: cbbdata",
+              title = "Rolling 5 Game AverageGame Score",
+              subtitle = "2023-24 Season")+
+         theme(plot.title = element_text(size = 18, face = "bold", hjust = 0.5))+
+         theme(plot.subtitle = element_text(size = 12,hjust = 0.5))
+       
+       
+       
+       five_mins <- Buck_pbp%>%
+         filter(half == 2 & secs_remaining <= 300,shot_team == "Bucknell")%>%
+         mutate(score_value = case_when(shot_outcome == "made"& free_throw == TRUE ~ 1,
+                                        shot_outcome == "made"& three_pt == TRUE ~ 3,
+                                        shot_outcome == "made"& three_pt == FALSE & free_throw == FALSE ~ 2,
+                                        shot_outcome == "missed" ~ 0),
+                is_three = if_else(three_pt == TRUE,1,0),
+                is_two = if_else(three_pt == FALSE,1,0),
+                is_shot_made = if_else(shot_outcome == "made",1,0),
+                is_three_made = if_else(scoring_play== TRUE & three_pt == TRUE,1,0),
+                is_two_made = if_else(scoring_play== TRUE & three_pt == FALSE,1,0)
+                )%>%
+         group_by(shooter)%>%
+         mutate(points = sum(score_value))%>%
+         ungroup()%>%
+         filter(half == 2 & secs_remaining <= 300,shot_team == "Bucknell",free_throw == FALSE)%>%
+         #select(home,away,description,shooter,scoring_play,shot_outcome,three_pt,free_throw,score_value,points,is_three)%>%
+         group_by(shooter)%>%
+         mutate(number_of_shots = n(),
+                three_attempts = sum(is_three),
+                three_makes = sum(is_three_made),
+                three_pct = three_makes/three_attempts,
+                two_attempts = sum(is_two),
+                two_makes = sum(is_two_made),
+                two_pct = two_makes/two_attempts,
+                shots_made = sum(is_shot_made),
+                FG_perc = shots_made/number_of_shots,
+                pps = points/number_of_shots)
+       
+       five_mins_players <- five_mins%>%
+         select(shooter,two_makes,two_attempts,two_pct, three_makes,three_attempts,three_pct,shots_made,number_of_shots,FG_perc,points,pps)
+       
+       five_mins <-five_mins%>%
+         filter(shooter == "Jack Forrest")
+       
+       five_mins_players <- five_mins_players[!duplicated(five_mins_players$shooter), ]
+       
+       install.packages("writexl")
+       library("writexl") 
+       write_xlsx(five_mins_players, "five_mins.xlsx")
+       
+       
+       write_csv(five_mins_players, "five_mins.csv")
+       five_mins_players %>%
+         gt() %>%
+         #gtExtras::gt_theme_espn()%>%
+         #gtExtras::gt_img_rows(player_image)%>%
+         cols_label(shooter = "Shooter",
+                    shots_made = "FGM",
+                    number_of_shots = "FGA",
+                    FG_perc = "FG%",
+                    points = "PTS",
+                    pps = "Points per Shot")%>%
+         fmt_percent(columns = c(FG_perc),decimals = 1)%>%
+         fmt_number(columns = pps,decimals = 2)%>%
+         gt::cols_align(
+           align = "center",
+           columns = vars(Game_Score))%>%
+         gt::cols_align(
+           align = "center",
+           columns = vars(points_per_shot))%>%
+         gt::cols_align(
+           align = "center",
+           columns = vars(position))%>%
+         gtExtras::gt_color_rows(Game_Score, palette = "ggsci::blue_material")%>%
+         gtExtras::gt_color_rows(points_per_shot, palette = "ggsci::blue_material")%>%
+         tab_style(
+           style = cell_fill(color = "white"),
+           locations = cells_body(
+             columns = c(player, position),
+             rows = c(1,2,4,7,9,11)))%>%
+         tab_style(
+           style = cell_fill(color = "darkorange"),
+           locations = cells_body(
+             columns = c(player, position),
+             rows = c(3,5,7,9,10,11,15,17)))%>%
+         tab_header(title = "Bucknell vs American Postgame",
+                    subtitle = "71-63 Loss | 01/06/2024")%>%
+         tab_source_note(source_note = "By Bucknell Analytics | Data: ncaahoopR")%>%
+         opt_align_table_header(align = "center")
+       
+       names(all_teams)
+       
+       all_teams <- load_mbb_pbp(seasons = most_recent_mbb_season())
+       athlete_ids <- load_mbb_player_box(seasons = most_recent_mbb_season())
+       
+       athlete_ids <- athlete_ids%>%
+         select(athlete_id,athlete_display_name,athlete_position_abbreviation,)%>%
+         rename(athlete_id_1 = athlete_id)
+       
+       athlete_ids <- athlete_ids[!duplicated(athlete_ids), ]
+       
+       all_teams_players <- all_teams%>%
+            left_join(athlete_ids, by = "athlete_id_1")
+       
+       names(all_teams_players)
+       
+       all_teams_players <- all_teams_players%>%
+       filter(period_display_value == "2nd Half" & clock_minutes < 5)%>%
+         mutate(free_throw = if_else(score_value == 1,1,0),
+                is_three = if_else(score_value == 3,1,0),
+                is_two = if_else(score_value == 2,1,0),
+                is_shot_made = if_else(scoring_play == TRUE,1,0),
+                is_three_made = if_else(scoring_play== TRUE & score_value == 3,1,0),
+                is_two_made = if_else(scoring_play== TRUE & score_value == 2,1,0),
+                points_scored = case_when(scoring_play == TRUE & free_throw == 1 ~ 1,
+                                          scoring_play == TRUE& is_three == 1 ~ 3,
+                                          scoring_play == TRUE& is_two == 1  ~ 2,
+                                          scoring_play == FALSE ~ 0))%>%
+         group_by(athlete_id_1)%>%
+         mutate(points = sum(points_scored),
+                FTA = sum(free_throw),
+                made_ft = if_else(free_throw == 1 &scoring_play == TRUE,1,0),
+                FTM = sum(made_ft),
+                FT_perc = FTM/FTA)%>%
+         ungroup()%>%
+         filter(period_display_value == "2nd Half" & clock_minutes < 5 & shooting_play == TRUE & free_throw == 0)%>%
+         #select(home,away,description,shooter,scoring_play,shot_outcome,three_pt,free_throw,score_value,points,is_three)%>%
+         group_by(athlete_id_1)%>%
+         mutate(number_of_shots = n(),
+                three_attempts = sum(is_three),
+                three_makes = sum(is_three_made),
+                three_pct = three_makes/three_attempts,
+                two_attempts = sum(is_two),
+                two_makes = sum(is_two_made),
+                two_pct = two_makes/two_attempts,
+                shots_made = sum(is_shot_made),
+                FG_perc = shots_made/number_of_shots,
+                pps = points/number_of_shots,
+                TS_perc = (points)/
+                  (2*(number_of_shots+.44*FTA))
+                )%>%
+         ungroup()
+
+         
+       #   
+       # all_five_mins_players <- all_teams_players%>%
+       #   select(athlete_display_name,text,free_throw,is_three,is_two,is_shot_made,is_three_made,is_two_made,points_scored,points,FTM,
+       #          FTA,number_of_shots,three_attempts,three_makes,two_attempts,two_makes,two_pct,three_pct,
+       #          shots_made,FG_perc,pps,TS_perc)
+
+       # 
+       # 
+       # ids <- ids%>%
+       #   rename(team_id = id)
+       # 
+       all_teams_players <- all_teams_players%>%
+         left_join(ids, by = "team_id")
+      
+       
+       all_five_mins_players <- all_teams_players%>%
+         select(athlete_id_1,athlete_display_name,team,two_makes,two_attempts,two_pct, 
+                three_makes,three_attempts,three_pct,FTM,FTA,FT_perc,shots_made,
+                number_of_shots,FG_perc,points,pps,TS_perc)%>%
+         filter(FTA >= 15,!is.na(athlete_display_name))
+       
+       all_five_mins_players <- all_five_mins_players[!duplicated(all_five_mins_players$athlete_id_1), ]
+       
+       chart <- all_five_mins_players%>%
+         arrange(-FT_perc,-FTA)%>%
+         mutate(Rank = row_number())%>%
+         filter(Rank <=20)%>%
+         select(Rank,athlete_display_name, team, FTM,FTA,FT_perc)%>%
+         cbbdata::cbd_gt_logos(team,team)
+       
+       
+       chart[is.na(chart)] <- 0
+       
+       chart %>%
+         gt() %>%
+         #cbbdata::gt_theme_athletic()%>%
+         gt::fmt_markdown(team)%>%
+         gt::cols_align(columns = "team", "left")%>%
+         gtExtras::gt_theme_espn()%>%
+         cols_label(athlete_display_name = "Player",
+                    team = "Team",
+                    points = "Points",
+                    shots_made = "FGM",
+                    number_of_shots = "FGA",
+                    FG_perc = "FG%",
+                    TS_perc = "TS%")%>%
+         fmt_percent(columns = c(FG_perc,TS_perc),decimals = 1)%>%
+         #gtExtras::gt_color_rows(c(two_pct,three_pct,FT_perc), palette = "ggsci::blue_material")%>%
+         # data_color(columns = c(two_pct,three_pct),
+         #            palette = c("red", "indianred1","white", "steelblue1", "blue"),
+         #            domain = c(0,1))%>%
+         # data_color(columns = FT_perc,
+         #            palette = c("red", "indianred1","white", "steelblue1", "blue"),
+         #            domain = c(.3,1))%>%
+         data_color(columns = c(FG_perc,TS_perc),
+                    palette = c("red", "indianred1","white", "steelblue1", "blue"),
+                    domain = c(.15,.97))%>%
+         # gt::cols_align(
+         #   align = "center",
+         #   columns = vars(Game_Score))%>%
+         tab_header(title = "Best Closers in NCAA Men's Basketball",
+                    subtitle = "Under 5 Minutes Remaining in the Game | Min 15 Shots | 2023/24 Season")%>%
+         tab_source_note(source_note = "By Bucknell Analytics | Data: cbbdata")%>%
+         opt_align_table_header(align = "center")
+       
+       
+       chart %>%
+         gt() %>%
+         #cbbdata::gt_theme_athletic()%>%
+         gt::fmt_markdown(team)%>%
+         gt::cols_align(columns = "team", "left")%>%
+         gtExtras::gt_theme_espn()%>%
+         cols_label(athlete_display_name = "Player",
+                    team = "Team",
+                    FT_perc = "FT%")%>%
+         fmt_percent(columns = c(FT_perc),decimals = 1)%>%
+         data_color(columns = FT_perc,
+                    palette = c("red", "indianred1","white", "steelblue1", "blue"),
+                    domain = c(.41,1))%>%
+         # gt::cols_align(
+         #   align = "center",
+         #   columns = vars(Game_Score))%>%
+         tab_header(title = "Avoid Fouling These Guys Late",
+                    subtitle = "Under 5 Minutes Remaining in the Game | Minimum 15 Attempts | 2023/24 Season")%>%
+         tab_source_note(source_note = "By Bucknell Analytics | Data: cbbdata")%>%
+         opt_align_table_header(align = "center")
+       
+       
+       
+       all_roster <- get_roster("Lehigh")
+       
+       final_roster <- rbind(final_roster,all_roster)
+       
+       all_opps_rosters <- final_roster%>%
+         rename(shooter = name)
+       
+       Buck_pbp <- Buck_pbp%>%
+         left_join(all_opps_rosters, by = "shooter")
+       
+       
+       
+       all_teams <- load_mbb_pbp(seasons = most_recent_mbb_season())
+       athlete_ids <- load_mbb_player_box(seasons = most_recent_mbb_season())
+       
+       names(all_teams)
+       
+       all_teams_players <- all_teams_players%>%
+         filter(period_display_value == "2nd Half" & clock_minutes < 5)%>%
+         mutate(free_throw = if_else(score_value == 1,1,0),
+                is_three = if_else(score_value == 3,1,0),
+                is_two = if_else(score_value == 2,1,0),
+                is_shot_made = if_else(scoring_play == TRUE,1,0),
+                is_three_made = if_else(scoring_play== TRUE & score_value == 3,1,0),
+                is_two_made = if_else(scoring_play== TRUE & score_value == 2,1,0),
+                points_scored = case_when(scoring_play == TRUE & free_throw == 1 ~ 1,
+                                          scoring_play == TRUE& is_three == 1 ~ 3,
+                                          scoring_play == TRUE& is_two == 1  ~ 2,
+                                          scoring_play == FALSE ~ 0))%>%
+         group_by(athlete_id_1)%>%
+         mutate(points = sum(points_scored),
+                FTA = sum(free_throw),
+                made_ft = if_else(free_throw == 1 &scoring_play == TRUE,1,0),
+                FTM = sum(made_ft),
+                FT_perc = FTM/FTA)%>%
+         ungroup()%>%
+         filter(period_display_value == "2nd Half" & clock_minutes < 5 & shooting_play == TRUE & free_throw == 0)%>%
+         #select(home,away,description,shooter,scoring_play,shot_outcome,three_pt,free_throw,score_value,points,is_three)%>%
+         group_by(athlete_id_1)%>%
+         mutate(number_of_shots = n(),
+                three_attempts = sum(is_three),
+                three_makes = sum(is_three_made),
+                three_pct = three_makes/three_attempts,
+                two_attempts = sum(is_two),
+                two_makes = sum(is_two_made),
+                two_pct = two_makes/two_attempts,
+                shots_made = sum(is_shot_made),
+                FG_perc = shots_made/number_of_shots,
+                pps = points/number_of_shots,
+                TS_perc = (points)/
+                  (2*(number_of_shots+.44*FTA))
+         )%>%
+         ungroup()
+       
+       names(athlete_ids)
+       
+       
+       
+       pos_perc <- athlete_ids%>%
+         filter(!is.na(minutes))%>%
+         group_by(team_id)%>%
+         mutate(total_points_allowed = sum(points))%>%
+         ungroup()%>%
+         group_by(team_id, athlete_position_name)%>%
+         mutate(total_points_pos_group = sum(points),
+                pos_group_perc_points_allowed = total_points_pos_group/total_points_allowed)%>%
+         ungroup()%>%
+         group_by(athlete_position_name)%>%
+         mutate(mean_pos_group_perc_points_allowed = mean(pos_group_perc_points_allowed),
+                dif = pos_group_perc_points_allowed-mean_pos_group_perc_points_allowed)%>%
+         select(team_location,total_points_allowed,athlete_position_abbreviation,total_points_pos_group,
+                pos_group_perc_points_allowed,mean_pos_group_perc_points_allowed,dif)%>%
+         ungroup()
+       
+       
+       pos_perc <- pos_perc[!duplicated(pos_perc), ]
+       
+       pos_team_perc <- pos_perc%>%
+         filter(team_location == "Colgate")%>%
+         rename(opponent_team_location = team_location)
+       
+       
+       
+       opp_pos_perc <- athlete_ids%>%
+         filter(!is.na(minutes),athlete_position_abbreviation != "ATH")%>%
+         group_by(opponent_team_id)%>%
+         mutate(total_points_allowed = sum(points))%>%
+         ungroup()%>%
+         group_by(opponent_team_id, athlete_position_name)%>%
+         mutate(total_points_pos_group = sum(points),
+                pos_group_perc_points_allowed = round(total_points_pos_group/total_points_allowed,3))%>%
+         ungroup()%>%
+        group_by(athlete_position_name)%>%
+          mutate(mean_pos_group_perc_points_allowed = mean(pos_group_perc_points_allowed),
+                 dif = pos_group_perc_points_allowed-mean_pos_group_perc_points_allowed)%>%
+          select(opponent_team_location,total_points_allowed,athlete_position_abbreviation,total_points_pos_group,
+                 pos_group_perc_points_allowed,mean_pos_group_perc_points_allowed,dif)%>%
+          ungroup()
+          
+         
+       
+       opp_pos_perc <- opp_pos_perc[!duplicated(opp_pos_perc), ]
+       
+       opp_pos_team_perc <- opp_pos_perc%>%
+         filter(opponent_team_location == "Bucknell" | opponent_team_location =="American University"| opponent_team_location =="Colgate"|
+                opponent_team_location =="Lehigh"| opponent_team_location =="Lafayette"|opponent_team_location =="Army"|
+                  opponent_team_location =="Navy"|opponent_team_location =="Boston University"|opponent_team_location == "Loyola Maryland"|
+                  opponent_team_location =="Holy Cross", athlete_position_abbreviation != "ATH")%>%
+         rename(Position = athlete_position_abbreviation)
+       
+       
+       
+       final_bar_chart <- rbind(opp_pos_team_perc, pos_team_perc)
+       
+       final_bar_chart <- final_bar_chart%>%
+         rename(Position = athlete_position_abbreviation)
+      
+       install.packages("cbbplotR")
+       library(cbbplotR)
+       
+       if (!require("pak")) install.packages("pak")
+       pak::pak("andreweatherman/cbbplotR")
+       
+       pkgbuild::check_build_tools(debug = TRUE)
+       
+       
+       
+       pat_logo <- gt_cbb_logo_title(title = "Comparing the Percentage of Points Allowed by Position",
+                                     subtitle = "Patriot League 2023-24",
+                                     type = "conference",
+                                     value = "Patriot League")
+       
+       
+       
+         ggplot(opp_pos_team_perc, aes(fill = Position, x = opponent_team_location, 
+                              y = pos_group_perc_points_allowed, label = scales::percent(pos_group_perc_points_allowed)))+
+         geom_bar(position = "fill", stat = "identity")+
+           geom_col(color = "black")+
+           geom_text(size = 5.5, position = position_stack(vjust=0.5))+
+           scale_y_continuous(labels = percent)+
+           scale_fill_brewer(palette = "Pastel2")+
+           theme_minimal()+
+           theme(legend.position = "bottom")+
+           labs(x = "",
+                y = "Percentage of Points",
+                title = "Comparing the Percentage of Points Allowed by Position",
+                subtitle = "Patriot League 2023-24",
+                caption = "By Bucknell Analytics | Data: cbbdata, cbbplotR")+
+           theme(axis.text.x = element_cbb_teams(size = 2),
+                 axis.text.y = element_text(family = "Times",size=20),
+                 axis.title.y = element_text(family = "Times",size=21),
+                 text = element_text(family = "Times"),
+                 legend.text = element_text(family = "Times",size = 12),
+                 legend.title = element_text(family = "Times", size = 14))+
+           theme(strip.text = element_text(family = "Times",size=20))+
+           theme(plot.title = element_text(family = "Times",face = "bold",size = 30, hjust = 0.5))+
+           theme(plot.subtitle = element_text(size = 18, hjust = 0.5))
+           
+         
+         
+         final_bar_chart2 <- rbind(opp_pos_team_perc, pos_team_perc)
+         
+         final_bar_chart2 <- final_bar_chart2%>%
+           #rename(Position = athlete_position_abbreviation)%>%
+           mutate(pos_group_perc_points_allowed = round(pos_group_perc_points_allowed,3))
+         
+         bucknell_off <- ggplot(final_bar_chart2, aes(fill = Position, x = opponent_team_location, 
+                                     y = pos_group_perc_points_allowed, label = scales::percent(pos_group_perc_points_allowed)))+
+           geom_bar(position = "fill", stat = "identity")+
+           geom_col(color = "black")+
+           geom_text(size = 5.5, position = position_stack(vjust=0.5))+
+           scale_y_continuous(labels = percent)+
+           scale_fill_brewer(palette = "Pastel2")+
+           theme_minimal()+
+           theme(legend.position = "bottom")+
+           labs(x = "",
+                y = "",
+                title = "Bucknell Offense vs. Colgate Defense")+
+           theme(axis.text.x = element_text(family = "Times",size=18),
+                 axis.text.y = element_text(family = "Times",size=18),
+                 axis.title.y = element_text(family = "Times",size=18))+
+           theme(strip.text = element_text(family = "Times",size=20))+
+           theme(plot.title = element_text(family = "Times",size = 22, hjust = 0.5))+
+           theme(plot.subtitle = element_text(size = 14, hjust = 0.5))
+         
+         
+         
+         
+         bucknell_def+bucknell_off +
+           plot_annotation(title = "Comparing the Percentage of Points Scored by Position",
+                           caption = "By Bucknell Analytics | Data: cbbdata",
+                           theme = theme(plot.title = element_text(family = "Times",size = 35, face = "bold", hjust = 0.5),
+                                         plot.subtitle = element_text(family = "Times",size = 23, hjust = 0.5)))
+         
+         
+         
+         
+         player_game <- cbd_torvik_player_game(year = 2024)
+         
+         
+         play_style <- player_game%>%
+           filter(conf == "ACC")%>%
+           group_by(team)%>%
+           #group_by(team,date)%>%
+           mutate(total_game_rim_a = sum(rim_a),
+                  total_game_rim_m = (sum(rim_m))*2,
+                  rim_perc = total_game_rim_m/total_game_rim_a,
+                  total_game_mid_a = sum(mid_a),
+                  total_game_mid_m = (sum(mid_m))*2,
+                  mid_perc = total_game_mid_m/total_game_mid_a,
+                  total_game_three_a = sum(three_a),
+                  total_game_three_m = (sum(three_m))*3,
+                  three_perc = total_game_three_m/total_game_three_a,
+                  total_game_fta = sum(fta),
+                  total_game_ftm = sum(ftm),
+                  ft_perc = total_game_ftm/total_game_fta,
+                  total_game_pts= sum(pts),
+                  total_game_attempts = total_game_rim_a+total_game_mid_a+total_game_three_a)%>%
+           pivot_longer(c(total_game_rim_a,total_game_mid_a,total_game_three_a),
+                        names_to = "attempt_location",values_to = "attempt_values")%>%
+           pivot_longer(c(total_game_rim_m,total_game_mid_m,total_game_three_m,total_game_ftm),
+                        names_to = "made_location",values_to = "made_values")%>%
+           pivot_longer(c(rim_perc,mid_perc,three_perc,ft_perc),
+                        names_to = "location_shooting_perc",values_to = "shooting_perc")%>%
+           ungroup()%>%
+           group_by(team,attempt_location)%>%
+           mutate(attempt_location_perc = round(attempt_values/total_game_attempts,3))%>%
+           ungroup()%>%
+           group_by(team,made_location)%>%
+           mutate(made_location_perc = round(made_values/total_game_pts,3),
+                  Location = case_when(attempt_location == "total_game_rim_a"~ "Rim",
+                                        attempt_location == "total_game_mid_a"~ "Mid Range",
+                                        attempt_location == "total_game_three_a"~ "3 Pointer",
+                                       attempt_location == "total_game_fta"~ "Free Throw",
+                                       location_shooting_perc == "rim_perc"~ "Rim",
+                                       location_shooting_perc == "mid_perc"~ "Mid Range",
+                                       location_shooting_perc == "three_perc"~ "3 Pointer",
+                                       location_shooting_perc == "ft_perc"~ "Free Throw"))%>%
+           ungroup()%>%
+           select(team,opp,date,attempt_location,attempt_location_perc,Location,location_shooting_perc,shooting_perc)
+           
+           select(date,team,conf,opp,attempt_location,attempt_location_perc,Location,shooting_perc)
+         
+         
+         
+         
+         play_style <- player_game%>%
+           #filter(team == "American")%>%
+           filter(conf == "ACC")%>%
+           group_by(date)%>%
+           mutate(total_game_rim_a = sum(rim_a),
+                  total_game_rim_m = sum(rim_m),
+                  rim_perc = total_game_rim_m/total_game_rim_a,
+                  total_game_mid_a = sum(mid_a),
+                  total_game_mid_m = sum(mid_m),
+                  mid_perc = total_game_mid_m/total_game_mid_a,
+                  total_game_three_a = sum(three_a),
+                  total_game_three_m = sum(three_m),
+                  three_perc = total_game_three_m/total_game_three_a,
+                  total_game_fta = sum(fta),
+                  total_game_ftm = sum(ftm),
+                  ft_perc = total_game_ftm/total_game_fta,
+                  total_game_pts= sum(pts),
+                  total_game_attempts = total_game_rim_a+total_game_mid_a+total_game_three_a)%>%
+           pivot_longer(c(total_game_rim_a,total_game_mid_a,total_game_three_a,total_game_fta),
+                        names_to = "attempt_location",values_to = "attempt_values")%>%
+           pivot_longer(c(total_game_rim_m,total_game_mid_m,total_game_three_m,total_game_ftm),
+                        names_to = "made_location",values_to = "made_values")%>%
+           pivot_longer(c(rim_perc,mid_perc,three_perc,ft_perc),
+                        names_to = "location_shooting_perc",values_to = "shooting_perc")%>%
+           mutate(attempt_location_perc = round(attempt_values/total_game_attempts,3))%>%
+           mutate(made_location_perc = round(made_values/total_game_pts,3),
+                  Location = case_when(attempt_location == "total_game_rim_a"~ "Rim",
+                                       attempt_location == "total_game_mid_a"~ "Mid Range",
+                                       attempt_location == "total_game_three_a"~ "3 Pointer",
+                                       attempt_location == "total_game_fta"~ "Free Throw",
+                                       location_shooting_perc == "rim_perc"~ "Rim",
+                                       location_shooting_perc == "mid_perc"~ "Mid Range",
+                                       location_shooting_perc == "three_perc"~ "3 Pointer",
+                                       location_shooting_perc == "ft_perc"~ "Free Throw"))%>%
+           select(date,team,player,conf,opp,result,attempt_location,attempt_location_perc,Location,location_shooting_perc,shooting_perc,efg)
+         
+         
+         
+         play_style <- play_style%>%
+           mutate(true_location = case_when(Location == "Rim" & location_shooting_perc ==	"rim_perc" ~ "Rim",
+                                            Location == "Mid Range" & location_shooting_perc ==	"mid_perc" ~ "Mid Range",
+                  Location == "3 Pointer" & location_shooting_perc ==	"three_perc" ~ "3 Pointer",
+                  Location == "Free Throw" & location_shooting_perc ==	"ft_perc" ~ "Free Throw"))%>%
+           filter(!is.na(true_location))%>%
+           rename(Result = "result")
+         
+         
+         play_style <- play_style[!duplicated(play_style), ]
+         
+    # Stacked Bar Chart
+         
+           ggplot(play_style, aes(fill = Location, x = team, 
+                                         y = attempt_location_perc, label = scales::percent(attempt_location_perc,accuracy = 0.1)))+
+             geom_bar(position = "fill", stat = "identity")+
+             geom_col(color = "black")+
+             geom_text(size = 7, position = position_stack(vjust=0.5))+
+             scale_y_continuous(labels = percent)+
+             scale_fill_brewer(palette = "Pastel2")+
+             theme_minimal()+
+             theme(legend.position = "bottom")+
+             labs(x = "",
+                  y = "Percentage of Team's Total Shot Attempts",
+                  title = "ACC Shot Attempt Allocation",
+                  subtitle = "Full Season 2023-24",
+                  caption = "By Bucknell Analytics | Data: cbbdata, cbbplotR")+
+             theme(axis.text.x = element_cbb_teams(size = 2),
+                   axis.text.y = element_text(family = "Times",size=20),
+                   axis.title.y = element_text(family = "Times",size=21),
+                   text = element_text(family = "Times"),
+                   legend.text = element_text(family = "Times",size = 20),
+                   legend.title = element_blank(),
+                   plot.caption = element_text(family = "Times",size = 14))+
+             theme(strip.text = element_text(family = "Times",size=20))+
+             theme(plot.title = element_text(family = "Times",face = "bold",size = 30, hjust = 0.5))+
+             theme(plot.subtitle = element_text(size = 20, hjust = 0.5))
+           
+           
+          # Team Line Chart Over Time 
+           
+           
+           ggplot(data = play_style)+
+             geom_line(aes(x=date,y=attempt_location_perc),group = 4)+
+             #geom_line(aes(x=date,y=attempt_location_perc),group = 4,color="red")+
+             #geom_hline(yintercept = mean(), linetype = "dashed", color = "black")+
+             #geom_smooth(aes(alpha = .01),method = lm, se = FALSE, color = "black")+
+             stat_smooth(aes(x=date,y=attempt_location_perc),alpha=0.5, se=FALSE, color = "black")+
+             scale_y_continuous(labels = percent)+
+             geom_vline(xintercept = unclass(as.Date("2023-12-30")),linetype = "dashed", color = "black")+
+             geom_point(aes(x=date,y=attempt_location_perc,color = Result), size = 2)+
+             scale_color_manual(values = c("red","darkgreen"))+
+                                #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+             #stat_smooth(aes(x=date,y=attempt_location_perc),geom = "line",method = lm, alpha=0.5, se=FALSE, color = "red")+
+             #geom_point(aes(color = Result), size = 2)+
+             #scale_y_reverse()+
+             #geom_label_repel(aes(label=opp), size = 1.5)+
+             #geom_hline(yintercept = 0, linetype = "dashed", color = "black")+
+             #geom_hline(yintercept = mean_game_score, linetype = "dashed", color = "black")+
+             #geom_smooth(aes(alpha = .01),method = lm, se = FALSE, color = "black")+
+             #stat_smooth(geom = "line", alpha=0.5, se=FALSE, color = "blue")+
+             #scale_color_manual(values = c("red","darkgreen"))+
+             #theme_minimal()+
+             theme_minimal()+
+             labs(y = "Attempt Rate",
+                  x= "",
+               caption = "By Bucknell Analytics | Data: cbbdata",
+                  title = "Bucknell Attempt Rate By Shot Type Over Time",
+                  subtitle = "Conference Play Begins After Dashed Line")+
+             theme(plot.title = element_text(family = "Times",size = 30, face = "bold", hjust = 0.5))+
+             theme(plot.subtitle = element_text(family = "Times",size = 22,hjust = 0.5))+
+             theme(strip.text = element_text(family = "Times",size=20))+
+             theme(axis.text.x = element_text(family = "Times",size=18),
+                   axis.text.y = element_text(family = "Times",size=18),
+                   axis.title.y = element_text(family = "Times",size=18))+
+             facet_wrap(~ Location)
+           
+           
+           
+           
+         # Individual Line Chart over Time  
+           
+           play_style <-play_style%>%
+             filter(true_location != "Free Throw"&
+                      player != "Alek Delev" &
+                      player != "Brady Muller"&
+                      player != "Patrick O'Brien")%>%
+             mutate(efg = efg*.01)
+           
+            
+           
+           ggplot(data = play_style)+
+             #stat_smooth(aes(x=date,efg),color = "black",alpha=0.15, se=FALSE,size=2)+
+             stat_smooth(aes(x=date,y=attempt_location_perc,color = Location), se=FALSE)+
+             scale_y_continuous(n.breaks = 8,labels = percent)+
+             scale_color_manual(values = c("blue","darkorange","brown"))+
+             #scale_y_continuous(breaks = c(.2, .4, .6,.8),labels = percent)+
+             #geom_vline(xintercept = unclass(as.Date("2023-12-30")),linetype = "dashed", color = "black")+
+             theme_fivethirtyeight()+
+             labs(caption = "By Bucknell Analytics | Data: cbbdata",
+                  title = "ACC Team Shot Attempt Rate by Shot Type Over Time",
+                  subtitle = "")+
+                  #subtitle = Black Line is EFG% | Conf Play Begins After Dashed Line)+
+             theme(plot.title = element_text(family = "Times",size = 30, face = "bold", hjust = 0.5))+
+             theme(plot.subtitle = element_text(family = "Times",size = 22,hjust = 0.5),
+                   legend.text = element_text(family = "Times",size = 22),
+                   legend.title = element_blank(),
+                   legend.position = "bottom")+
+             facet_wrap(~ team)+
+             theme(strip.text = element_text(family = "Times",size=20))+
+             theme(plot.title.position = 'plot',
+               strip.text.x = element_cbb_teams(size = 1.2)) 
+           
+           
+           
+       #Team Shot Selection in Wins vs Losses    
+           
+           
+           
+           win_loss_rate <- play_style%>%
+             group_by(Result,Location)%>%
+             mutate(avg_attempt_percentage = mean(attempt_location_perc))%>%
+             select(Result,Location,avg_attempt_percentage)
+           
+           
+           win_loss_rate <- win_loss_rate[!duplicated(win_loss_rate), ]
+           
+           
+           ggplot(win_loss_rate, aes(x = avg_attempt_percentage, 
+                                y = Location, fill = Result, label = scales::percent(avg_attempt_percentage,accuracy = 0.1)))+
+             geom_bar(position = "dodge",stat="identity")+
+             scale_fill_manual(values = c("red","darkgreen"))+
+             geom_text(size = 4, color = "white",position = position_dodge(width = .9),group = "Result",hjust = 1.5)+
+             theme_minimal()+
+             scale_x_continuous(labels = percent)+
+             theme(legend.position = "bottom")+
+             labs(x = "Attempt Rate",
+                  y = "",
+                  title = "American Team Shot Selection in Wins vs. Losses",
+                  subtitle = "2023-24",
+                  caption = "By Bucknell Analytics | Data: cbbdata, cbbplotR")+
+             theme(axis.text.x = element_text(family = "Times",size=20),
+                   axis.title.x = element_text(family = "Times",size=21),
+                   axis.text.y = element_text(family = "Times",size=20),
+                   text = element_text(family = "Times"),
+                   legend.text = element_text(family = "Times",size = 12),
+                   legend.title = element_blank())+
+             theme(strip.text = element_text(family = "Times",size=20))+
+             theme(plot.title = element_text(family = "Times",face = "bold",size = 30, hjust = 0.5))+
+             theme(plot.subtitle = element_text(size = 18, hjust = 0.5))
+           
+           
+           
+           
+           
+  ken <- ken%>%
+    filter(conf == "Pat")
+  
+  
+  ggplot(ken, aes(x = adj_o, y = adj_d, team = team)) +
+  geom_cbb_teams(width = 0.068) +
+  scale_y_reverse()+
+  geom_hline(yintercept = mean(ken$adj_d), linetype = "dashed")+
+  geom_vline(xintercept = mean(ken$adj_o), linetype = "dashed")+
+  theme_minimal() +
+  # theme(plot.title.position = 'plot',
+  #       plot.title = element_text(face = 'bold')) +
+  labs(title = 'Patriot League Adjusted Efficiencies',
+       x = 'Adjusted Offense',
+       y = 'Adjusted Defense',
+       caption = "By Bucknell Analytics | Data: cbbdata, cbbplotR",
+       subtitle = "Conference Games Only | 2023-24")+
+    geom_text(aes(x = 110, y = 96,
+                  label = "Elite"), size = 9)+
+    geom_text(aes(x = 91, y = 117,
+                  label = "Bad"), size = 9)+
+    geom_text(aes(x = 91, y = 96,
+                  label = "Good D Bad O"),size = 9)+
+    geom_text(aes(x = 110, y = 117,
+                  label = "Good O Bad D"), size = 9)+
+    theme(axis.text.x = element_text(family = "Times",size=20),
+          axis.text.y = element_text(family = "Times",size=20),
+          axis.title.y = element_text(family = "Times",size=21),
+          axis.title.x = element_text(family = "Times",size=21),
+          text = element_text(family = "Times",size = 18))+
+    #theme(strip.text = element_text(family = "Times",size=))+
+    theme(plot.title = element_text(family = "Times",size = 30, hjust = 0.5))+
+    theme(plot.subtitle = element_text(size = 18, hjust = 0.5))
+  
+  
+  
+  
+  player_year <- cbd_torvik_player_season(year = 2024)
+
+  
+  player_year <- player_year%>%
+    filter(conf == "Pat",mpg >5,usg >14)
+
+  # 
+  # c("Jack Forrest", "Josh Adoh","Elvin Edmonds IV","Josh Bascoe","Noah Williamson","Ruot Bijiek","Pip Ajayi")
+  # 
+  player_year$new_player <- ""
+  label2 <- c(13,14,47,64,65,69,70,85,86,91,92)
+  label <- c("Miles Brewster", "Anthony Morales","Malcolm Chimezie","Nic Nobili","Otto Landrum", 
+             "Spencer Joyner", "Matai Baptiste","Ethan Okwuosa","Michael McNair","Kyrone Alexander","Ben Palacios")
+  player_year$new_player[label2] <- player_year$player[label2]
+  
+  
+  ggplot(player_year, aes(x = usg, y = efg, team = team, label = player)) +
+    geom_hline(yintercept = mean(player_year$ts), linetype = "dashed")+
+    geom_vline(xintercept = mean(player_year$usg), linetype = "dashed")+
+    geom_cbb_teams(highlight_teams = "Boston University", width = 0.04, highlight_method = 'both') +
+    geom_label_repel(box.padding = 1,size = 3.5) +
+    theme_minimal() +
+    labs(title = 'Patriot League Individual Player Usage and Efficiency',
+         x = 'Usage Rate',
+         y = 'True Shooting %',
+         caption = "By Bucknell Analytics | Data: cbbdata, cbbplotR",
+         subtitle = "2023-24 Full Season")+
+    geom_text(aes(x = 27, y = 66,
+                  label = "High Usage High Efficiency"), size = 6)+
+    geom_text(aes(x = 16, y = 28,
+                  label = "Low Usage Low Efficiency"), size = 6)+
+    geom_text(aes(x = 16, y = 66,
+                  label = "Low Usage High Efficiency"),size = 6)+
+    geom_text(aes(x = 27, y = 28,
+                  label = "High Usage Low Efficiency"), size = 6)+
+    theme(axis.text.x = element_text(family = "Times",size=20),
+          axis.text.y = element_text(family = "Times",size=20),
+          axis.title.y = element_text(family = "Times",size=21),
+          axis.title.x = element_text(family = "Times",size=21),
+          text = element_text(family = "Times",size = 18))+
+    #theme(strip.text = element_text(family = "Times",size=))+
+    theme(plot.title = element_text(family = "Times",size = 30, hjust = 0.5))+
+    theme(plot.subtitle = element_text(size = 18, hjust = 0.5))
+  
+         
+  
+  
+  
+  player_play_type <- player_year%>%
+    filter(conf == "Pat")%>%
+  group_by(player)%>%
+    mutate(total_rim_m = (sum(rim_m))*2,
+           total_mid_m = (sum(mid_m))*2,
+           total_three_m = (sum(three_m))*3,
+           total_ftm = sum(ftm),
+           total_pts= total_rim_m + total_mid_m + total_three_m + total_ftm,
+           total_attempts = rim_a+mid_a+three_a)%>%
+    pivot_longer(c(rim_a,mid_a,three_a),
+                 names_to = "attempt_location",values_to = "attempt_values")%>%
+    pivot_longer(c(total_rim_m,total_mid_m,total_three_m,total_ftm),
+                 names_to = "made_location",values_to = "made_values")%>%
+    ungroup()%>%
+    group_by(player,attempt_location)%>%
+    mutate(attempt_location_perc = round(attempt_values/total_attempts,3))%>%
+    ungroup()%>%
+    group_by(player,made_location)%>%
+    mutate(made_location_perc = round(made_values/total_pts,3),
+           Location = case_when(attempt_location == "rim_a" & made_location == "total_rim_m"~ "Rim",
+                                attempt_location == "mid_a" & made_location == "total_mid_m"~ "Mid Range",
+                                attempt_location == "three_a" & made_location == "total_three_m"~ "3 Pointer",
+                                made_location == "total_ftm" ~ "Free Throw"))%>%
+     pivot_longer(c(attempt_location, made_location),
+                names_to = "Type",values_to = "values")%>%
+    pivot_longer(c(attempt_location_perc, made_location_perc),
+                 names_to = "total_perc",values_to = "values2")%>%
+    mutate(Type = case_when(Type == "attempt_location" & total_perc == "attempt_location_perc"~ "Attempts",
+                            Type == "made_location" & total_perc == "made_location_perc"~ "Points"),
+           is_fta = if_else(Location == "Free Throw"& Type == "Attempts",1,0))%>%
+    ungroup()%>%
+    filter(!is.na(Location),!is.na(Type))
+  
+  names(player_year)
+  
+  player_play_type_chart <- player_play_type%>%
+    filter(team == "American")
+  
+  player_play_type_chart <- player_play_type%>%
+    select(player,team,Location,Type,values2,is_fta,mpg)%>%
+    filter(team == "American",is_fta ==0,mpg > 4)
+  
+    filter(team == "American",is_fta ==0,player != "Evan Haber",
+           player != "Andrew Patnode", player != "Ryan Sutliff")
+  
+  
+  player_play_type_chart <- player_play_type_chart[!duplicated(player_play_type_chart), ]
+  
+  # 
+  # 
+  # c("Noah Williamson","Jack Forrest", "Elvin Edmonds IV","Josh Bascoe","Pip Ajayi",
+  #   "Josh Adoh","Ruot Bijiek","Ian Motta","Brandon McCreesh","Quin Berger",
+  #   "Brady Muller"))
+  # facet_wrap(~ factor(player,levels = c("Miles Brewster", "Ethan Okwuosa","Kyrone Alexander","Otto Landrum",
+  #                                       "Nic Nobili", "Anthony Morales","Matai Baptiste", "Ben Palacios",
+  #                                       "Malcolm Chimezie","Spencer Joyner", "Michael McNair")),nrow = 1)+
+  # 
+  
+  
+  
+  ggplot(player_play_type_chart, aes(fill = factor(Location, levels = c("Free Throw", "3 Pointer", "Mid Range", "Rim")), x = Type, 
+                         y = values2, label = scales::percent(values2,accuracy = 0.1)))+
+    geom_bar(position = "fill", stat = "identity")+
+    geom_col(color = "black")+
+    geom_text(data = player_play_type_chart%>%dplyr::filter(values2>0),size = 4.2, position = position_stack(vjust=0.5))+
+    #geom_label(data = player_play_type_chart%>% dplyr::filter(values2>0))+
+    facet_wrap(~ factor(player,levels = c(	
+      "Elijah Stephens",	
+      "Lorenzo Donadio",
+      "Lincoln Ball",
+      "Matt Rogers",
+      "Matt Mayock",
+      "Geoff Sprouse",
+      "Colin Smalls",
+      "Jermaine Ballisager Webb",
+      "Greg Jones",
+      "Noah Jones")),nrow = 1)+
+    scale_y_continuous(labels = percent)+
+    theme_minimal()+
+    scale_fill_brewer(palette = "Pastel2")+
+    theme(legend.position = "bottom")+
+    labs(x = "",
+         y = "Percentage of Total Attempts/Points",
+         title = "American Player Shot and Scoring Profile",
+         subtitle = "Ordered by MPG",
+         caption = "By Bucknell Analytics | Data: cbbdata, cbbplotR")+
+    theme(axis.text.x = element_text(size = 10),
+          axis.text.y = element_text(family = "Times",size=20),
+          axis.title.y = element_text(family = "Times",size=21),
+          text = element_text(family = "Times"),
+          legend.text = element_text(family = "Times",size = 12),
+          legend.title = element_blank())+
+    theme(strip.text = element_text(family = "Times",size=12))+
+    theme(plot.title = element_text(family = "Times",face = "bold",size = 30, hjust = 0.5))+
+    theme(plot.subtitle = element_text(size = 18, hjust = 0.5))
+  
+  
+  
+  american <- american[-19, ]
+  
+  american <- player_split%>%
+    filter(pts > 0)%>%
+    mutate(pts = round(pts,1))
+  
+  ggplot(american, aes(x = pts, 
+                         y = player, label = pts,fill = result))+
+    geom_bar(position = "dodge",stat="identity")+
+    scale_fill_manual(values = c("red","darkgreen"))+
+    geom_text(size = 4, color = "white",position = position_dodge(width = .9),group = "result",hjust = 1.5)+
+    theme_minimal()+
+    theme(legend.position = "bottom")+
+    labs(x = "Points",
+         y = "",
+         title = "American Player Points in Wins vs. Losses",
+         subtitle = "2023-24",
+         caption = "By Bucknell Analytics | Data: cbbdata, cbbplotR")+
+    theme(axis.text.x = element_text(family = "Times",size=20),
+          axis.title.x = element_text(family = "Times",size=21),
+          axis.text.y = element_text(family = "Times",size=20),
+          text = element_text(family = "Times"),
+          legend.text = element_text(family = "Times",size = 12),
+          legend.title = element_blank())+
+    theme(strip.text = element_text(family = "Times",size=20))+
+    theme(plot.title = element_text(family = "Times",face = "bold",size = 30, hjust = 0.5))+
+    theme(plot.subtitle = element_text(size = 18, hjust = 0.5))
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  # Animation Team Adjusted Efficiencies
+  
+  
+  
+  animation <- game_stats%>%
+    arrange(ymd(date))%>%
+    group_by(team)%>%
+    mutate(game_number = row_number(),
+          o_cum_avg = cumsum(adj_o)/seq_along(adj_o),
+           d_cum_avg = cumsum(adj_d)/seq_along(adj_d))
+  
+  
+  teams_max_16 <- animation %>%
+    group_by(team) %>%
+    filter(max(game_number) == 16) %>%
+    select(team) %>%
+    distinct()
+  
+  # Step 2: Create new rows with game_number 17 for identified teams
+  new_rows <- teams_max_16 %>%
+    left_join(animation, by = "team") %>%
+    filter(game_number == 16)%>%
+    mutate(game_number = 17)%>%
+    select(-team)  # Remove the 'team' column as it's already accounted for
+  
+  # Combine the original dataframe with the new rows
+  animation <- bind_rows(animation, new_rows)
+  
+                         
+  
+  anim <- animation%>%
+    ggplot(aes(x = o_cum_avg, y = d_cum_avg,team = team))+
+    geom_cbb_teams(width = 0.10) +
+    geom_mean_lines(aes(x0 = o_cum_avg, y0 = d_cum_avg), color = 'black') +
+    scale_y_reverse()+
+    theme_minimal() +
+    labs(x =  "Adjusted Offensive Efficiency" ,
+         y =  "Adjusted Defensive Efficiency" ,
+         title =  "Pac 12 Average Adjusted Efficiencies" ,
+         subtitle = ""  ,
+         caption =  "By Bucknell Analytics | Data: cbbdata, cbbplotR" )+
+    theme(axis.text.x = element_text(family =  "Times" ,size=18),
+          axis.title.x = element_text(family =  "Times" ,size=16),
+          axis.title.y = element_text(family =  "Times" ,size=16),
+          axis.text.y = element_text(family =  "Times" ,size=18),
+          text = element_text(family =  "Times" ))+
+    theme(plot.title = element_text(family =  "Times" ,face =  "bold" ,size = 22, hjust = 0.5))+
+    theme(plot.subtitle = element_text(size = 18, hjust = 0.5))+
+    transition_time(as.integer(game_number))+
+    labs(subtitle =  "Conference Game Number {frame_time}"  )+
+    view_step(pause_length = 15,
+              step_length = 1)+
+    view_follow()
+  
+  library(gganimate)
+  
+  str(animation)
+  
+  
+  animate(anim,fps = 10,nframes = 200,end_pause = 50)
+  
+  anim_save("PatLeagueAnim.gif",animation = last_animation())
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  all_teams <- load_mbb_pbp(seasons = most_recent_mbb_season())
+  athlete_ids <- load_mbb_player_box(seasons = most_recent_mbb_season())
+  
+  
+  athlete_ids <- athlete_ids%>%
+    select(athlete_id,athlete_display_name,athlete_position_abbreviation,team_location)%>%
+    rename(athlete_id_1 = athlete_id)
+  
+  athlete_ids <- athlete_ids[!duplicated(athlete_ids), ]
+  
+  all_teams_players <- all_teams%>%
+    left_join(athlete_ids, by = "athlete_id_1")
+  
+  unique(all_teams_players$type_text)
+  names(all_teams)
+  
+  #team_location,athlete_display_name,athlete_id_1,athlete_position_abbreviation,text,type_text,score_value,scoring_play,
+  
+  pbp <- all_teams_players%>%
+    filter(team_location == "Bucknell" & shooting_play == TRUE)%>%
+    mutate(free_throw = if_else(type_text == "MadeFreeThrow" ,1,0),
+           is_three = if_else(score_value == 3,1,0),
+           is_two = if_else(score_value == 2,1,0),
+           is_shot_made = if_else(scoring_play == TRUE,1,0),
+           is_three_made = if_else(scoring_play== TRUE & score_value == 3,1,0),
+           is_two_made = if_else(scoring_play== TRUE & score_value == 2,1,0),
+           points_scored = case_when(scoring_play == TRUE & free_throw == 1 ~ 1,
+                                     scoring_play == TRUE& is_three == 1 ~ 3,
+                                     scoring_play == TRUE& is_two == 1  ~ 2,
+                                     scoring_play == FALSE ~ 0),
+            Location = case_when(type_text == "DunkShot" |type_text == "TipShot" |type_text == "LayupShot" ~ "Rim",
+                                 type_text == "JumpShot"& is_three == 0 ~ "Mid Range",
+                                 is_three == 1 ~ "3 Pointer"),
+           is_rim_made = if_else(scoring_play== TRUE & Location == "Rim",1,0),
+           is_mid_range_made = if_else(scoring_play== TRUE & Location == "Mid Range",1,0),
+           is_rim = if_else(scoring_play== TRUE & Location == "Rim",1,0),
+           is_mid_range = if_else(scoring_play== TRUE & Location == "Mid Range",1,0),
+           EFG = ((is_shot_made +0.5*is_three_made)))%>%
+    ungroup()%>%
+    group_by(athlete_id_1)%>%
+    mutate(points = sum(points_scored),
+           FTA = sum(free_throw),
+           made_ft = if_else(free_throw == 1 &scoring_play == TRUE,1,0),
+           FTM = sum(made_ft),
+           FT_perc = FTM/FTA)%>%
+    ungroup()%>%
+    filter(shooting_play == TRUE & free_throw == 0)%>%
+    group_by(athlete_id_1)%>%
+    mutate(number_of_shots = n(),
+           shots_made = sum(is_shot_made),
+           three_attempts = sum(is_three),
+           three_makes = sum(is_three_made),
+           three_pct = three_makes/three_attempts,
+           two_attempts = number_of_shots-three_attempts,
+           two_makes = shots_made-three_makes,
+           two_pct = two_makes/two_attempts,
+           FG_perc = shots_made/number_of_shots,
+           pps = points/number_of_shots,
+           TS_perc = (points)/
+             (2*(number_of_shots+.44*FTA))
+    )%>%
+    ungroup()
+  
+  
+  
+  condensed_bucknell_players <- bucknell_players%>%
+    select(athlete_display_name,two_makes,two_attempts,two_pct, three_makes,three_attempts,three_pct,shots_made,number_of_shots,FG_perc,points,pps)
+  
+  five_mins <-five_mins%>%
+    filter(shooter == "Jack Forrest")
+  
+  condensed_bucknell_players <- condensed_bucknell_players[!duplicated(condensed_bucknell_players$athlete_display_name), ]
+  
+  
+  rolling_chart <- pbp%>%
+        arrange(ymd(game_date),sequence_number)%>%
+        group_by(athlete_id_1)%>%
+        mutate( shot_number = row_number(),
+                rolling_EFG = rollmean(EFG, k = 40, fill = NA),
+                rolling_three_pct = rollmean(is_three_made,k = 20, fill = NA),
+                rolling_rim_pct = rollmean(is_rim,k = 20, fill = NA),
+                rolling_mid_range_pct = rollmean(is_mid_range,k = 20, fill = NA))
+                # 
+                # EFG = cumsum(shots_made)/seq_along(adj_o),
+                # d_cum_avg = cumsum(adj_d)/seq_along(adj_d))
+                # 
+  
+                #avg_EFG = ((cumsum(is_shot_made) +0.5*cumsum(is_three_made))/cumsum(is_three + is_two)),
+  names(athlete_ids)
+  unique(all_teams$type_text)
+  
+  
+  game_score_table <- player_year%>%
+    #left_join(athlete_ids, by = c("player"="athlete_display_name"))%>%
+    arrange(-game_score)%>%
+    mutate(Rank = row_number())%>%
+    gt_cbb_teams(team, team)%>%
+    filter(Rank <= 20)%>%
+    select(Rank,team,player,exp,pos,usg,efg,game_score)
+  
+  
+  
+  game_score_table %>%
+    gt() %>%
+    fmt_markdown(team)%>%
+    gtExtras::gt_theme_538()%>%
+    #gtExtras::gt_img_rows(player_image)%>%
+    cols_label(team = "Team",
+              player = "Player",
+               pos = "Position",
+              exp = "Class",
+              usg = "Usage Rate",
+              efg = "eFG %",
+               game_score = "Game Score")%>%
+    fmt_number(columns = game_score,decimals = 1)%>%
+    gt::cols_align(
+      align = "center",
+      columns = vars(game_score))%>%
+    gtExtras::gt_color_rows(game_score, palette = "ggsci::blue_material")%>%
+    gtExtras::gt_color_rows(usg, palette = "ggsci::blue_material")%>%
+    gtExtras::gt_color_rows(efg, palette = "ggsci::blue_material")%>%
+    tab_header(title = "Best Players in College Basketball by Avg Game Score",
+    subtitle = "All Conferences | 2023-24")%>%
+    tab_source_note(source_note = "By Bucknell Analytics | Data: cbbdata,cbbplotR")%>%
+    opt_align_table_header(align = "center")
+  
+  
+  
