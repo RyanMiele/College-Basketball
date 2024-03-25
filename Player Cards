@@ -1,0 +1,600 @@
+
+  
+  
+  library(cbbdata)
+  
+  
+  cbbdata::cbd_login(username = "RyanMiele", password = "Hughes86")
+  
+  
+  
+  athlete_ids <- load_mbb_player_box(seasons = most_recent_mbb_season())
+  
+  
+  athlete_ids <- athlete_ids%>%
+    select(athlete_id,athlete_display_name,athlete_position_abbreviation,athlete_headshot_href,team_logo,team_location)%>%
+    rename(athlete_id_1 = athlete_id)
+  
+  athlete_ids <- athlete_ids[!duplicated(athlete_ids), ]
+  
+  
+  player_game <- cbd_torvik_player_game(year = 2024)
+  
+  player_year <- cbd_torvik_player_season(year = 2024)
+  
+  
+  #player_year23[is.na(player_year23)] <- 0
+  
+  
+  
+  reverse_cols <- c('tov_percentile',"tov_per_40_percentile", 'drtg_percentile')
+  
+  
+  player_year <- player_year%>%
+    filter(!is.na(rim_a) & !is.na(mid_a))%>%
+    mutate(rim_perc = rim_a/fga,
+           mid_perc = mid_a/fga,
+           three_perc = three_a/fga,
+           game_score = ppg + .4*(fgm/g) - .7*(fga/g) - .4*((fta/g)-(ftm/g)) + 
+             .7*oreb +.3*dreb+ spg+.7*apg + .7*bpg -.4*pfr-tov,
+           avg_efg = (sum(fgm) + .5 * (sum(three_m)))/sum(fga),
+           avg_rim = (sum(rim_a))/(sum(fga)),
+           avg_mid = (sum(mid_a))/(sum(fga)),
+           avg_three = (sum(three_a))/(sum(fga)),
+           avg_three_m = (sum(three_m))/(sum(three_a)),
+           avg_rim_m = (sum(rim_m))/(sum(rim_a)),
+           avg_mid_m = (sum(mid_m))/(sum(mid_a)),
+           avg_ft_m = (sum(ftm))/(sum(fta)),
+           avg_ts = (sum(ftm) + (2*sum(two_m)) +(3*sum(three_m)))/ (2 * (sum(fga) + (.44 *sum(fta)))),
+           across(!where(is.character), ~ . /mpg*40, .names = "{col}_per_40"))%>%
+    filter(mpg > 10 & g >18 &!is.na(game_score))%>%
+    mutate(avg_usg = mean(usg),
+           avg_game_score = mean(game_score),
+           gs_percentile = round(rank(game_score) / length(game_score)*100,0),
+           gs_percentile = gs_percentile*.01,
+           
+           mpg_percentile = round(rank(mpg) / length(mpg)*100,0),
+           mpg_percentile = mpg_percentile*.01,
+           
+           ppg_percentile = round(rank(ppg) / length(ppg)*100,0),
+           ppg_percentile = ppg_percentile*.01,
+           
+           oreb_percentile = round(rank(oreb) / length(oreb)*100,0),
+           oreb_percentile = oreb_percentile*.01,
+           
+           dreb_percentile = round(rank(dreb) / length(dreb)*100,0),
+           dreb_percentile = dreb_percentile*.01,
+           
+           rpg_percentile = round(rank(rpg) / length(rpg)*100,0),
+           rpg_percentile = rpg_percentile*.01,
+           
+           apg_percentile = round(rank(apg) / length(apg)*100,0),
+           apg_percentile = apg_percentile*.01,
+           
+           tov_percentile = round(rank(tov) / length(tov)*100,0),
+           tov_percentile = tov_percentile*.01,
+           
+           spg_percentile = round(rank(spg) / length(spg)*100,0),
+           spg_percentile = spg_percentile*.01,
+           
+           bpg_percentile = round(rank(bpg) / length(bpg)*100,0),
+           bpg_percentile = bpg_percentile*.01,
+  
+           
+           usg_percentile = round(rank(usg) / length(usg)*100,0),
+           usg_percentile = usg_percentile*.01,
+           
+           ortg_percentile = round(rank(ortg) / length(ortg)*100,0),
+           ortg_percentile = ortg_percentile*.01,
+           
+           drtg_percentile = round(rank(drtg) / length(drtg)*100,0),
+           drtg_percentile = drtg_percentile*.01,
+           
+           porpag_percentile = round(rank(porpag) / length(porpag)*100,0),
+           porpag_percentile = porpag_percentile*.01,
+           
+           dporpag_percentile = round(rank(dporpag) / length(dporpag)*100,0),
+           dporpag_percentile = dporpag_percentile*.01,
+           
+           obpm_percentile = round(rank(obpm) / length(obpm)*100,0),
+           obpm_percentile = obpm_percentile*.01,
+           
+           dbpm_percentile = round(rank(dbpm) / length(dbpm)*100,0),
+           dbpm_percentile = dbpm_percentile*.01,
+           
+           bpm_percentile = round(rank(bpm) / length(bpm)*100,0),
+           bpm_percentile = bpm_percentile*.01,
+           
+           
+           mpg_per_40_percentile = round(rank(mpg_per_40) / length(mpg_per_40)*100,0),
+           mpg_per_40_percentile = mpg_per_40_percentile*.01,
+           
+           ppg_per_40_percentile = round(rank(ppg_per_40) / length(ppg_per_40)*100,0),
+           ppg_per_40_percentile = ppg_per_40_percentile*.01,
+           
+           oreb_per_40_percentile = round(rank(oreb_per_40) / length(oreb_per_40)*100,0),
+           oreb_per_40_percentile = oreb_per_40_percentile*.01,
+           
+           dreb_per_40_percentile = round(rank(dreb_per_40) / length(dreb_per_40)*100,0),
+           dreb_per_40_percentile = dreb_per_40_percentile*.01,
+           
+           rpg_per_40_percentile = round(rank(rpg_per_40) / length(rpg_per_40)*100,0),
+           rpg_per_40_percentile = rpg_per_40_percentile*.01,
+           
+           apg_per_40_percentile = round(rank(apg_per_40) / length(apg_per_40)*100,0),
+           apg_per_40_percentile = apg_per_40_percentile*.01,
+           
+           tov_per_40_percentile = round(rank(tov_per_40) / length(tov_per_40)*100,0),
+           tov_per_40_percentile = tov_per_40_percentile*.01,
+           
+           spg_per_40_percentile = round(rank(spg_per_40) / length(spg_per_40)*100,0),
+           spg_per_40_percentile = spg_per_40_percentile*.01,
+           
+           bpg_per_40_percentile = round(rank(bpg_per_40) / length(bpg_per_40)*100,0),
+           bpg_per_40_percentile = bpg_per_40_percentile*.01)%>%
+    mutate(across(all_of(starts_with(reverse_cols)), ~1 - .x))
+           
+           
+  
+  
+  
+  player_season <- player_year%>%
+    filter(player == "DJ Burns Jr.")%>%
+    left_join(athlete_ids, by = c("player"="athlete_display_name"))
+  
+  
+  kpi <- ggplot(player_season,aes(x = 3, y = gs_percentile)) +
+    geom_linerange(aes(ymin = 0, ymax = 1), linewidth = 4, color = "lightblue1") +
+    geom_linerange(aes(ymin = 0, ymax = gs_percentile), linewidth = 4, color = "steelblue2") +
+    geom_text(aes(x = .5, y = 0, label = scales::percent(gs_percentile)), size =17 ) +
+    #geom_text(aes(x = 0, y = 0, label = "Game Score Percentile"), size =3 ) +
+    coord_polar(theta = 'y') +
+    theme_void() +
+    labs(caption =  "Game Score Percentile")+
+    scale_x_continuous(limits = c(0, 4), expand = c(0, 0)) + 
+    theme(strip.text = element_blank(),
+          plot.caption = element_text(hjust = .5,vjust = 16,size=13))
+  
+  
+  
+  headshot <- ggplot(data = player_season)+
+    theme_minimal()+
+    ggdraw()+
+    draw_image(player_season$athlete_headshot_href,hjust = .5)
+  
+  name <- 
+    ggplot(data = player_season)+
+    theme_void()+
+    geom_text(aes(x = 1, y = 1.5, label = player_season$player), size = 10)+
+    # geom_text(aes(x = 1, y = 1, label = player_season$exp, size = 1))+
+    # geom_text(aes(x = 0, y = 1.3, label = player_season$pos, size = .5))+
+    # geom_text(aes(x = 1, y = 1.3, label = player_season$hgt, size = .5))+
+    theme(axis.text.y = element_blank(),
+          legend.position = "none",
+          axis.text.x = element_blank(),
+          plot.caption = element_text(size = 8),
+          panel.background = element_blank())
+
+  
+  team_logo <- ggplot(data = player_season)+
+    theme_minimal()+
+    ggdraw()+
+    draw_image(player_season$team_logo,hjust = .5)
+  
+  
+  
+  player_background <- player_season%>% 
+    pivot_longer(c(team,exp),
+                 names_to = "stat",values_to = "values")%>%
+    pivot_longer(c(pos,hgt),
+                 names_to = "stat.1",values_to = "values.1")%>%
+    filter((stat == "team" & stat.1 == "pos" | 
+              stat == "exp" & stat.1 == "hgt"))%>%
+    reframe(values,values.1)
+  
+  
+  background <- 
+    
+    gt(player_background)%>%
+    gt_theme_nytimes()%>%
+    cols_label(values = "",
+               values.1 = "")%>%
+    gt_add_divider(values, color = 'lightgray', include_labels = FALSE,weight = .5) %>%
+    gt::cols_align(
+      align = "center",
+      columns = c(values,values.1))
+  
+  
+  back<- tempfile(fileext = ".png")
+  gtsave(background,back)
+  background_png <- png::readPNG(back,native = TRUE)
+  
+  
+  
+  cols_to_plot <- tibble(
+    stat = c('mpg', 'ppg', 'oreb', 'dreb', 'rpg', 'bpg', 'apg', 'spg', 
+             'tov', 'efg', 'three_pct', 'ft_pct', 'ortg', 'drtg', 'usg', 'porpag'
+             ,'game_score','obpm','dbpm','bpm','dporpag','rim_pct','mid_pct',"ts","g"),
+    plot_name = c('Minutes', 'Points', 'Off. Rebounds', 'Def. Rebounds', 'Rebounds', 'Blocks', 'Assists', 'Steals', 
+                  'Turnovers', 'eFG %', '3P %', 'FT %', 'Off. Rating', 'Def. Rating', 'Usage', 'PORPAG',
+                  "Game Score", "Off. Box +/-", "Def. Box +/-", "Box +/-", "DPORPAG","Rim %", "Mid Range %","TS %","Games"))
+  
+  
+    
+    player_box <- player_season%>% 
+  pivot_longer(c(g,mpg,ppg,oreb,dreb,rpg,apg,tov,spg,bpg,usg,game_score,ortg,drtg,obpm,dbpm,bpm,porpag,dporpag),
+               names_to = "stat",values_to = "values")%>%
+      left_join(cols_to_plot, by = "stat")%>%
+      pivot_longer(c(mpg_per_40_percentile, ppg_per_40_percentile, oreb_per_40_percentile, dreb_per_40_percentile,
+                     rpg_per_40_percentile, apg_per_40_percentile, tov_per_40_percentile, spg_per_40_percentile,
+                    bpg_per_40_percentile),
+                   names_to = "per_40_percentile",values_to = "per_40_percentile_values")%>%
+      pivot_longer(c(mpg_percentile, ppg_percentile, oreb_percentile, dreb_percentile,
+                     rpg_percentile, apg_percentile, tov_percentile, spg_percentile,
+                     bpg_percentile,
+                     usg_percentile,gs_percentile,ortg_percentile,drtg_percentile,obpm_percentile,dbpm_percentile,
+                     bpm_percentile,porpag_percentile,dporpag_percentile),
+                   names_to = "per_game_percentile",values_to = "per_game_percentile_values")%>%
+    reframe(player,plot_name,values,per_40_percentile,per_40_percentile_values,per_game_percentile,per_game_percentile_values)
+    
+    
+    
+  
+  
+  player_shooting <- player_season%>%
+    mutate(efg = efg*.01,
+           ts = ts*.01)%>%
+    pivot_longer(c(efg,ts,ft_pct,rim_pct,mid_pct,three_pct),
+                 names_to = "stat",values_to = "values")%>%
+      mutate(average = case_when(stat == "efg" ~ avg_efg,
+                                 stat == "ts" ~ avg_ts,
+                                 stat == "ft_pct" ~ avg_ft_m,
+                                 stat == "rim_pct" ~ avg_rim_m,
+                                 stat == "mid_pct" ~ avg_mid_m,
+                                 stat == "three_pct" ~ avg_three_m),
+             above_average = values - average)%>%  
+    left_join(cols_to_plot, by = "stat")%>%
+    reframe(player,plot_name,values,average,above_average)
+  
+    
+  
+  
+  
+  shooting <-  
+    
+    
+    ggplot(player_shooting,aes(x = factor(plot_name,levels=c("eFG %","TS %","FT %", "Rim %", "Mid Range %", "3P %")),
+                                          y = above_average, fill = above_average, label = scales::percent(above_average,accuracy = 0.1))) +
+    geom_bar( color = "black", width = .4,stat = "identity", size = .4) +
+    scale_fill_gradientn(colors = c("red","indianred1","white", "steelblue1", "blue"),limits = c(-.2,.2),
+                         breaks = c(-.15,0,.15), labels = c("Bad", "Average","Elite"), name = "")+
+    geom_text(size = 6, color = "black",vjust = ifelse(player_shooting$above_average < 0, 1.3, -.5))+
+    # geom_text(data = player_shooting, aes(x = as.numeric(factor(plot_name,
+    #                                                             levels=c("eFG %","TS %","FT %", "Rim %", "Mid Range %", "3P %")))+.11, 
+    #                                       y = .13, label = scales::percent(average, accuracy = 0.1)), size = 4) +
+    
+    geom_text(data = player_shooting, aes(x = as.numeric(factor(plot_name,
+                                                                levels=c("eFG %","TS %","FT %", "Rim %", "Mid Range %", "3P %")))+.03, 
+                                          y = -.2, label = scales::percent(values, accuracy = 0.1)), size = 4) +
+    
+    geom_text(data = player_shooting, aes(x = as.numeric(factor(plot_name,
+                                                                levels=c("eFG %"))) - .39,
+                                          y = -.19, label = "Plyr Avg", size = .1)) +
+    geom_text(data = player_shooting, aes(x = as.numeric(factor(plot_name,
+                                                                levels=c("eFG %"))) - .41,
+                                          y = .01, label = "D1 Avg", size = .1)) +
+
+    theme_minimal() +
+    scale_y_continuous(labels = percent,limits = c(-.2,.1))+
+    geom_hline(yintercept = 0, linetype = "solid", color = "black")+
+    #coord_cartesian(ylim=c(.15, 1))+
+    labs(x = "",
+         y = "",
+         caption = "By: Bucknell Analytics | Data: cbbdata,cbbplotR",
+         title = "Shooting % vs. D1 Average")+
+    theme(plot.title = element_text(size = 30, hjust = 0.5))+
+    theme(strip.text = element_text(size=20))+
+    theme(axis.text.y = element_blank(),
+          legend.position = "none",
+          plot.title = element_text(hjust = 0.1,size = 17),
+          axis.text.x = element_text(size=16),
+          plot.caption = element_text(size = 10),
+          panel.background = element_blank())
+  
+  
+  
+  
+  
+  tab1 <- player_box %>%
+    filter((plot_name == "Minutes" & per_40_percentile == "mpg_per_40_percentile" & per_game_percentile == "mpg_percentile") | 
+             (plot_name == "Points" & per_40_percentile == "ppg_per_40_percentile" & per_game_percentile == "ppg_percentile") |
+             (plot_name == "Off. Rebounds" & per_40_percentile == "oreb_per_40_percentile" & per_game_percentile == "oreb_percentile") |
+             (plot_name == "Def. Rebounds" & per_40_percentile == "dreb_per_40_percentile" & per_game_percentile == "dreb_percentile") |
+             (plot_name == "Rebounds" & per_40_percentile == "rpg_per_40_percentile" & per_game_percentile == "rpg_percentile") |
+             (plot_name == "Assists" & per_40_percentile == "apg_per_40_percentile" & per_game_percentile == "apg_percentile") |
+             (plot_name == "Turnovers" & per_40_percentile == "tov_per_40_percentile" & per_game_percentile == "tov_percentile") |
+             (plot_name == "Steals" & per_40_percentile == "spg_per_40_percentile" & per_game_percentile == "spg_percentile") |
+             (plot_name == "Blocks" & per_40_percentile == "bpg_per_40_percentile" & per_game_percentile == "bpg_percentile"))%>%
+    mutate(per_40 = (values/player_season$mpg)*40)%>%
+    dplyr::slice(1:10)
+  
+  
+  tab2 <- player_box %>%
+    select(-per_40_percentile,-per_40_percentile_values)%>%
+    filter((plot_name == "Usage" &  per_game_percentile == "usg_percentile") |  
+             (plot_name == "Game Score" &  per_game_percentile == "gs_percentile") |
+             (plot_name == "Off. Rating" &  per_game_percentile == "ortg_percentile") |
+             (plot_name == "Def. Rating" &  per_game_percentile == "drtg_percentile") |
+             (plot_name == "Off. Box +/-" &  per_game_percentile == "obpm_percentile") |
+             (plot_name == "Def. Box +/-" &  per_game_percentile == "dbpm_percentile") |
+             (plot_name == "Box +/-" &  per_game_percentile == "bpm_percentile") |
+             (plot_name == "PORPAG" &  per_game_percentile == "porpag_percentile") |
+             (plot_name == "DPORPAG" &  per_game_percentile == "dporpag_percentile"))
+  
+  
+  
+  tab2 <- tab2[!duplicated(tab2), ]
+  
+  
+  
+  tab_combined <- data.frame(tab1,tab2)
+  
+  tab_combined<- tab_combined%>%
+    select(-player,-player.1)
+  
+  tab_combined <- 
+    
+   gt(tab_combined)%>%
+   gt_theme_538()%>%
+    cols_hide(c(per_40_percentile,per_40_percentile_values,per_game_percentile,per_game_percentile_values,
+                per_game_percentile.1,per_game_percentile_values.1)) %>% 
+     cols_label(plot_name = "Box Score",
+                          values = "Per Game",
+                per_40 = "Per 40 Mins",
+                     plot_name.1 = "Advanced Stats",
+                         values.1 = "")%>%
+   data_color(columns = per_game_percentile_values,
+              target_columns = values,
+              palette = c("red", "indianred1","white", "steelblue1","blue"),
+              domain = c(0,1))%>%
+    data_color(columns = per_game_percentile_values.1,
+               target_columns = values.1,
+               palette = c("red", "indianred1","white", "steelblue1","blue"),
+               domain = c(0,1))%>%
+    data_color(columns = per_40_percentile_values,
+               target_columns = per_40,
+               palette = c("red", "indianred1","white", "steelblue1","blue"),
+               domain = c(0,1))%>%
+   #fmt_percent(columns = c(),decimals = 1)%>%
+     fmt_number(columns = c(values,values.1,per_40),decimals = 1)%>%
+     gt_add_divider(per_40, color = 'black', include_labels = TRUE) %>%
+    gt::cols_align(
+      align = "center",
+      columns = c(plot_name,values,plot_name.1,values.1,per_40))
+   
+  
+  
+  
+  
+  tmp<- tempfile(fileext = ".png")
+  gtsave(tab_combined,tmp)
+  table_png <- png::readPNG(tmp,native = TRUE)
+  
+  
+  
+  
+  
+  player_game[is.na(player_game)] <- 0
+  
+  
+  player_profile <- player_game%>%
+    filter(player == "Jared McCain")%>%
+    mutate( game_number = row_number(),
+            FGM = two_m + three_m,
+            FGA = two_a + three_a,
+            rim_perc = rim_a/FGA,
+            mid_perc = mid_a/FGA,
+            three_perc = three_a/FGA,
+            three_FGM = three_m/three_a,
+            three_FGM = ifelse(is.na(three_FGM), 0, three_FGM),
+            game_score = pts + .4*FGM - .7*FGA - .4*(fta-ftm) + .7*oreb +.3*dreb+ stl+.7*ast + .7*blk -.4*pf-tov)%>%
+    arrange(game_number)%>%
+    mutate( rolling_efg = (rollmean(efg, k = 5,fill = NA, align = "right")*.01),
+            rolling_rim_perc = rollmean(rim_perc, k = 5, fill = NA, align = "right"),
+            rolling_mid_perc = rollmean(mid_perc, k = 5, fill = NA, align = "right"),
+            rolling_three_perc = rollmean(three_perc, k = 5, fill = NA, align = "right"),
+            rolling_three_m_perc = rollmean(three_FGM, k = 5, fill = NA, align = "right"),
+            rolling_usg = (rollmean(usg, k = 5, fill = NA, align = "right")*.01),
+            rolling_game_score = rollmean(game_score, k = 5, fill = NA, align = "right"))
+    
+  
+  player_profile[is.na(player_profile)] <- 0
+  
+  
+  
+  
+  rim <- ggplot(player_profile, aes(x=game_number,y=rolling_rim_perc))+
+    geom_line(aes(),color = "steelblue1",size = 1)+
+    scale_y_continuous(labels = percent,limits = c(0,.85))+
+    scale_x_continuous(limits = c(5,37))+
+    geom_hline(yintercept = (player_season$rim_perc),linetype = "dashed", color = "steelblue1",size = 1.1)+
+    geom_hline(yintercept = (player_season$avg_rim),linetype = "dashed", color = "black",size=1.1)+
+    #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+    theme_minimal()+
+    labs(y = "",
+         x= "",
+         title = "Rim Attempt Rate")+
+    theme(plot.title = element_text(size = 22, hjust = 0.5))+
+    theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
+    theme(strip.text = element_text(size=20))+
+    theme(axis.text.x = element_text(size=14),
+          axis.text.y = element_text(size=14))
+  
+  
+  three_m_perc <- ggplot(player_profile, aes(x=game_number,y=rolling_three_m_perc))+
+    geom_line(aes(),color = "steelblue1",size = 1)+
+    scale_y_continuous(labels = percent,limits = c(0,.7))+
+    scale_x_continuous(limits = c(5,37))+
+    geom_hline(yintercept = (player_season$three_pct),linetype = "dashed", color = "steelblue1",size = 1.1)+
+    geom_hline(yintercept = (player_season$avg_three_m),linetype = "dashed", color = "black",size=1.1)+
+    #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+    theme_minimal()+
+    labs(y = "",
+         x= "Game Number",
+         title = "3P%",
+         caption = "| Blue Dashed Line = Player Year Avg")+
+    theme(plot.title = element_text(size = 22, hjust = 0.5))+
+    theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
+    theme(strip.text = element_text(size=20))+
+    theme(axis.text.x = element_text(size=14),
+          axis.text.y = element_text(size=14),
+          plot.caption = element_text(size = 9))
+  
+  
+  three <- ggplot(player_profile, aes(x=game_number,y=rolling_three_perc))+
+    geom_line(aes(),color = "steelblue1",size = 1)+
+    scale_y_continuous(labels = percent,limits = c(.001,.8))+
+    scale_x_continuous(limits = c(5,37))+
+    geom_hline(yintercept = (player_season$three_perc),linetype = "dashed", color = "steelblue1",size = 1.1)+
+    geom_hline(yintercept = (player_season$avg_three),linetype = "dashed", color = "black",size=1.1)+
+    #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+    theme_minimal()+
+    labs(y = "",
+         x= "Game Number",
+         title = "3P Attempt Rate",
+         caption = "Black Dashed Line = NCAA D1 Avg")+
+    theme(plot.title = element_text(size = 22, hjust = 0.5))+
+    theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
+    theme(strip.text = element_text(size=20))+
+    theme(axis.text.x = element_text(size=14),
+          axis.text.y = element_text(size=14),
+          plot.caption = element_text(size = 9))
+  
+    
+  
+  
+  efg <- ggplot(player_profile, aes(x=game_number,y=rolling_efg))+
+    geom_line(aes(),color = "steelblue1",size = 1)+
+    scale_y_continuous(labels = percent,limits = c(0,.92))+
+    scale_x_continuous(limits = c(5,37))+
+    geom_hline(yintercept = (player_season$efg)*.01,linetype = "dashed", color = "steelblue1",size = 1.1)+
+    geom_hline(yintercept = (player_season$avg_efg),linetype = "dashed", color = "black",size=1.1)+
+    #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+    theme_minimal()+
+    labs(y = "",
+         x= "",
+         title = "eFG%")+
+    theme(plot.title = element_text(size = 22, hjust = 0.5))+
+    theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
+    theme(strip.text = element_text(size=20))+
+    theme(axis.text.x = element_text(size=14),
+          axis.text.y = element_text(size=14))
+  
+  
+  
+  
+  game_score <- ggplot(player_profile, aes(x=game_number,y=rolling_game_score))+
+    geom_line(aes(),color = "steelblue1",size = 1)+
+    scale_y_continuous(limits = c(0,25))+
+    scale_x_continuous(limits = c(5,37))+
+    geom_hline(yintercept = (player_season$game_score),linetype = "dashed", color = "steelblue1",size = 1.1)+
+    geom_hline(yintercept = (player_season$avg_game_score),linetype = "dashed", color = "black",size=1.1)+
+    #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+    theme_minimal()+
+    labs(y = "",
+         x= "",
+         title = "Game Score")+
+    theme(plot.title = element_text(size = 22, hjust = 0.5))+
+    theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
+    theme(strip.text = element_text(size=20))+
+    theme(axis.text.x = element_text(size=14),
+          axis.text.y = element_text(size=14))
+  
+  
+  
+  
+  
+  usg <- ggplot(player_profile, aes(x=game_number,y=rolling_usg))+
+    geom_line(aes(),color = "steelblue1",size = 1)+
+    scale_y_continuous(labels = percent,limits = c(.05,.4))+
+    scale_x_continuous(limits = c(5,37))+
+    geom_hline(yintercept = (player_season$usg)*.01,linetype = "dashed", color = "steelblue1",size = 1.1)+
+    geom_hline(yintercept = (player_season$avg_usg)*.01,linetype = "dashed", color = "black",size=1.1)+
+    #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+    theme_minimal()+
+    labs(y = "",
+         x= "",
+         title = "Usage Rate")+
+    theme(plot.title = element_text(size = 22, hjust = 0.5))+
+    theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
+    theme(strip.text = element_text(size=20))+
+    theme(axis.text.x = element_text(size=14),
+          axis.text.y = element_text(size=14))
+  
+  
+  
+  library(paletteer)
+  
+         charts <- (usg + game_score) / 
+                  (rim + efg) / 
+               (three + three_m_perc )+
+    plot_layout(nrow  =3)+
+      plot_annotation(title = "5 Game Rolling Averages",
+                      theme = theme(plot.title = element_text(family = "Times",size = 20, hjust = 0.5),
+                            plot.subtitle = element_text(family = "Times",size = 12, hjust = 0.5)))
+  
+    
+    ((headshot + kpi) / table_png/shooting ) | charts+ plot_layout(widths = c(2,1))
+      plot_layout(ncol = 2,widths = c(2,1))+
+      plot_annotation(title = "Jack Forrest",
+                      subtitle = "UConn  |  Combo G  |  6-4  |  Senior",
+                      theme = theme(plot.title = element_text(family = "Times",size = 30, face = "bold" ,hjust = 0.5),
+                                    plot.subtitle = element_text(family = "Times",size = 18, hjust = 0.5)))
+    
+         
+     left<- 
+       (kpi) + (table_png) + (shooting) +plot_layout(ncol = 1,heights = c(1,2,1))+
+       plot_annotation(title = paste0(player_season$player),
+                       subtitle = "Bucknell  |  Wing G  |  6-5  |  Senior",
+                       theme = theme(plot.title = element_text(family = "Times",size = 30, face = "bold", hjust = 0.5),
+                                     plot.subtitle = element_text(family = "Times",size = 18, hjust = 0.5)))
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     charts <- (usg + game_score) / 
+       (rim + efg) / 
+       (three + three_m_perc )+
+       plot_layout(nrow  =3)+
+       plot_annotation(title = "5 Game Rolling Averages",
+                       theme = theme(plot.title = element_text(size = 16, hjust = 0.5),
+                                     plot.subtitle = element_text(size = 12, hjust = 0.5)))
+     
+     back_table <- (wrap_elements(background_png) + kpi) +plot_layout(nrow=2,heights = c(1,3))
+     
+    
+     titles <- team_logo | name  | headshot
+     
+     left_middle <- (wrap_elements(back_table) | (table_png))  + plot_layout(widths = c(1,2))
+     
+     
+     left <- (titles) / (left_middle) + plot_layout(heights = c(.55,2.5,.95))
+      
+     
+     left <- left /shooting
+     
+     plot_grid(left,charts,ncol = 2,rel_widths = c(2,1))
+     
+      
+     
