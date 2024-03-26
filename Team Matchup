@@ -1,0 +1,719 @@
+
+    
+    team_year <- cbd_torvik_ratings(year = 2024)
+    
+    team_game_stats <- cbd_torvik_game_stats(year = 2024)
+    
+    player_game <- cbd_torvik_player_game(year = 2024)
+    
+    
+    team_ids <- load_mbb_player_box(seasons = most_recent_mbb_season())
+    
+    
+    team_ids <- team_ids%>%
+      select(team_logo,team_location)
+    
+    team_ids <- team_ids[!duplicated(team_ids), ]
+    
+    
+    
+    #Getting Adjusted O
+    
+    team_game_stats <- team_game_stats%>%
+      mutate(avg_adj_o = mean(adj_o))
+    
+    team_game <- team_game_stats%>%
+      filter(team == "Duke")%>%
+      mutate(team_avg_adj_o = mean(adj_o),
+             game_number = n() - row_number() + 1)%>%
+      arrange(game_number)%>%
+      mutate(rolling_adj_o = rollmean(adj_o, k = 5, fill = NA, align = "right"))
+    
+    
+    #Off Shots over Time
+    
+    team_style <- player_game%>%
+      group_by(date,team)%>%
+      mutate(total_game_rim_a = sum(rim_a),
+             total_game_rim_m = sum(rim_m),
+             rim_perc = total_game_rim_m/total_game_rim_a,
+             total_game_mid_a = sum(mid_a),
+             total_game_mid_m = sum(mid_m),
+             mid_perc = total_game_mid_m/total_game_mid_a,
+             total_game_three_a = sum(three_a),
+             total_game_three_m = sum(three_m),
+             three_perc = total_game_three_m/total_game_three_a,
+             total_game_fta = sum(fta),
+             total_game_ftm = sum(ftm),
+             ft_perc = total_game_ftm/total_game_fta,
+             total_game_pts= sum(pts),
+             total_game_attempts = total_game_rim_a+total_game_mid_a+total_game_three_a)%>%
+      pivot_longer(c(total_game_rim_a,total_game_mid_a,total_game_three_a,total_game_fta),
+                   names_to = "attempt_location",values_to = "attempt_values")%>%
+      pivot_longer(c(total_game_rim_m,total_game_mid_m,total_game_three_m,total_game_ftm),
+                   names_to = "made_location",values_to = "made_values")%>%
+      pivot_longer(c(rim_perc,mid_perc,three_perc,ft_perc),
+                   names_to = "location_shooting_perc",values_to = "shooting_perc")%>%
+      mutate(attempt_location_perc = round(attempt_values/total_game_attempts,3))%>%
+      mutate(made_location_perc = round(made_values/total_game_pts,3),
+             Location = case_when(attempt_location == "total_game_rim_a"~ "Rim",
+                                  attempt_location == "total_game_mid_a"~ "Mid Range",
+                                  attempt_location == "total_game_three_a"~ "3 Pointer",
+                                  attempt_location == "total_game_fta"~ "Free Throw",
+                                  location_shooting_perc == "rim_perc"~ "Rim",
+                                  location_shooting_perc == "mid_perc"~ "Mid Range",
+                                  location_shooting_perc == "three_perc"~ "3 Pointer",
+                                  location_shooting_perc == "ft_perc"~ "Free Throw"))%>%
+      select(date,team,conf,opp,result,attempt_location,attempt_location_perc,Location,location_shooting_perc,shooting_perc)
+    
+    
+    team_style <- team_style%>%
+      mutate(true_location = case_when(Location == "Rim" & location_shooting_perc ==	"rim_perc" ~ "Rim",
+                                       Location == "Mid Range" & location_shooting_perc ==	"mid_perc" ~ "Mid Range",
+                                       Location == "3 Pointer" & location_shooting_perc ==	"three_perc" ~ "3 Pointer",
+                                       Location == "Free Throw" & location_shooting_perc ==	"ft_perc" ~ "Free Throw"))%>%
+      filter(!is.na(true_location))%>%
+      rename(Result = "result")
+    
+    
+    team_style <- team_style[!duplicated(team_style), ]
+    
+    
+    rim_team <- team_style%>%
+      ungroup()%>%
+      filter(true_location == "Rim")%>%
+      mutate(avg_rim = mean(attempt_location_perc))%>%
+      filter(team == "Duke")%>%
+      mutate( game_number = row_number())%>%
+      arrange(game_number)%>%
+      mutate( rolling_rim_perc = rollmean(attempt_location_perc, k = 5, fill = NA, align = "right"),
+              team_mean_rim = mean(attempt_location_perc))
+              
+    
+    three_team <- team_style%>%
+      ungroup()%>%
+      filter(true_location == "3 Pointer")%>%
+      mutate(avg_three = mean(attempt_location_perc))%>%
+      filter(team == "Duke")%>%
+      mutate( game_number = row_number())%>%
+      arrange(game_number)%>%
+      mutate( rolling_three_perc = rollmean(attempt_location_perc, k = 5, fill = NA, align = "right"),
+              team_mean_three = mean(attempt_location_perc))
+    
+              
+    
+    rim_team_chart <- ggplot(rim_team, aes(x=game_number,y=rolling_rim_perc))+
+      geom_line(aes(),color = "steelblue1",size = 1)+
+      scale_y_continuous(labels = percent,limits = c(.15,.6))+
+      scale_x_continuous(limits = c(5,37))+
+      geom_hline(yintercept = rim_team$team_mean_rim,linetype = "dashed", color = "steelblue1",size = 1.1)+
+      geom_hline(yintercept = rim_team$avg_rim,linetype = "dashed", color = "black",size=1.1)+
+      #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+      theme_minimal()+
+      labs(y = "",
+           x= "",
+           title = "Rim Attempt Rate")+
+      theme(plot.title = element_text(size = 22, hjust = 0.5))+
+      theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
+      theme(strip.text = element_text(size=20))+
+      theme(axis.text.x = element_text(size=14),
+            axis.text.y = element_text(size=14))
+    
+    
+    
+    three_team_chart <- ggplot(three_team, aes(x=game_number,y=rolling_three_perc))+
+      geom_line(aes(),color = "steelblue1",size = 1)+
+      scale_y_continuous(labels = percent,limits = c(.15,.6))+
+      scale_x_continuous(limits = c(5,37))+
+      geom_hline(yintercept = three_team$team_mean_three,linetype = "dashed", color = "steelblue1",size = 1.1)+
+      geom_hline(yintercept = three_team$avg_three,linetype = "dashed", color = "black",size=1.1)+
+      #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+      theme_minimal()+
+      labs(y = "",
+           x= "",
+           title = "Three Attempt Rate")+
+      theme(plot.title = element_text(size = 22, hjust = 0.5))+
+      theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
+      theme(strip.text = element_text(size=20))+
+      theme(axis.text.x = element_text(size=14),
+            axis.text.y = element_text(size=14))
+    
+    
+    adj_o_team_chart <- ggplot(team_game, aes(x=game_number,y=rolling_adj_o))+
+      geom_line(aes(),color = "steelblue1",size = 1)+
+      scale_y_continuous(limits = c(80,140))+
+      scale_x_continuous(limits = c(5,37))+
+      geom_hline(yintercept = team_game$team_avg_adj_o,linetype = "dashed", color = "steelblue1",size = 1.1)+
+      geom_hline(yintercept = team_game$avg_adj_o,linetype = "dashed", color = "black",size=1.1)+
+      #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+      theme_minimal()+
+      labs(y = "",
+           x= "",
+           title = "Offensive Efficiency (Adj)")+
+      theme(plot.title = element_text(size = 22, hjust = 0.5))+
+      theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
+      theme(strip.text = element_text(size=20))+
+      theme(axis.text.x = element_text(size=14),
+            axis.text.y = element_text(size=14))
+    
+    
+    
+    
+    
+    #Def Shots over Time
+    
+    
+    team_game_stats <- team_game_stats%>%
+      mutate(avg_adj_d = mean(adj_d))
+    
+    team_game2 <- team_game_stats%>%
+      filter(team == "Houston")%>%
+      mutate(team_avg_adj_d = mean(adj_d),
+             game_number = n() - row_number() + 1)%>%
+      arrange(game_number)%>%
+      mutate(rolling_adj_d = rollmean(adj_d, k = 5, fill = NA, align = "right"))
+    
+    
+    
+    team_style2 <- player_game%>%
+      group_by(date,opp)%>%
+      mutate(total_game_rim_a = sum(rim_a),
+             total_game_rim_m = sum(rim_m),
+             rim_perc = total_game_rim_m/total_game_rim_a,
+             total_game_mid_a = sum(mid_a),
+             total_game_mid_m = sum(mid_m),
+             mid_perc = total_game_mid_m/total_game_mid_a,
+             total_game_three_a = sum(three_a),
+             total_game_three_m = sum(three_m),
+             three_perc = total_game_three_m/total_game_three_a,
+             total_game_fta = sum(fta),
+             total_game_ftm = sum(ftm),
+             ft_perc = total_game_ftm/total_game_fta,
+             total_game_pts= sum(pts),
+             total_game_attempts = total_game_rim_a+total_game_mid_a+total_game_three_a)%>%
+      pivot_longer(c(total_game_rim_a,total_game_mid_a,total_game_three_a,total_game_fta),
+                   names_to = "attempt_location",values_to = "attempt_values")%>%
+      pivot_longer(c(total_game_rim_m,total_game_mid_m,total_game_three_m,total_game_ftm),
+                   names_to = "made_location",values_to = "made_values")%>%
+      pivot_longer(c(rim_perc,mid_perc,three_perc,ft_perc),
+                   names_to = "location_shooting_perc",values_to = "shooting_perc")%>%
+      mutate(attempt_location_perc = round(attempt_values/total_game_attempts,3))%>%
+      mutate(made_location_perc = round(made_values/total_game_pts,3),
+             Location = case_when(attempt_location == "total_game_rim_a"~ "Rim",
+                                  attempt_location == "total_game_mid_a"~ "Mid Range",
+                                  attempt_location == "total_game_three_a"~ "3 Pointer",
+                                  attempt_location == "total_game_fta"~ "Free Throw",
+                                  location_shooting_perc == "rim_perc"~ "Rim",
+                                  location_shooting_perc == "mid_perc"~ "Mid Range",
+                                  location_shooting_perc == "three_perc"~ "3 Pointer",
+                                  location_shooting_perc == "ft_perc"~ "Free Throw"))%>%
+      select(date,team,conf,opp,result,attempt_location,attempt_location_perc,Location,location_shooting_perc,shooting_perc)
+    
+    
+    team_style2 <- team_style2%>%
+      mutate(true_location = case_when(Location == "Rim" & location_shooting_perc ==	"rim_perc" ~ "Rim",
+                                       Location == "Mid Range" & location_shooting_perc ==	"mid_perc" ~ "Mid Range",
+                                       Location == "3 Pointer" & location_shooting_perc ==	"three_perc" ~ "3 Pointer",
+                                       Location == "Free Throw" & location_shooting_perc ==	"ft_perc" ~ "Free Throw"))%>%
+      filter(!is.na(true_location))%>%
+      rename(Result = "result")
+    
+    
+    team_style2 <- team_style2[!duplicated(team_style2), ]
+    
+    
+    rim_team2 <- team_style2%>%
+      ungroup()%>%
+      filter(true_location == "Rim")%>%
+      mutate(avg_rim = mean(attempt_location_perc))%>%
+      filter(opp == "Houston")%>%
+      mutate( game_number = row_number())%>%
+      arrange(game_number)%>%
+      mutate( rolling_rim_perc = rollmean(attempt_location_perc, k = 5, fill = NA, align = "right"),
+              team_mean_rim = mean(attempt_location_perc))
+    
+    
+    three_team2 <- team_style2%>%
+      ungroup()%>%
+      filter(true_location == "3 Pointer")%>%
+      mutate(avg_three = mean(attempt_location_perc))%>%
+      filter(opp == "Houston")%>%
+      mutate( game_number = row_number())%>%
+      arrange(game_number)%>%
+      mutate( rolling_three_perc = rollmean(attempt_location_perc, k = 5, fill = NA, align = "right"),
+              team_mean_three = mean(attempt_location_perc))
+    
+    
+    
+    rim_team_chart2 <- ggplot(rim_team2, aes(x=game_number,y=rolling_rim_perc))+
+      geom_line(aes(),color = "steelblue1",size = 1)+
+      scale_y_continuous(labels = percent,limits = c(.15,.6))+
+      scale_x_continuous(limits = c(5,37))+
+      geom_hline(yintercept = rim_team2$team_mean_rim,linetype = "dashed", color = "steelblue1",size = 1.1)+
+      geom_hline(yintercept = rim_team2$avg_rim,linetype = "dashed", color = "black",size=1.1)+
+      #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+      theme_minimal()+
+      labs(y = "",
+           x= "",
+           title = "Rim Attempt Rate Allowed")+
+      theme(plot.title = element_text(size = 22, hjust = 0.5))+
+      theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
+      theme(strip.text = element_text(size=20))+
+      theme(axis.text.x = element_text(size=14),
+            axis.text.y = element_text(size=14))
+    
+    
+    
+    three_team_chart2 <- ggplot(three_team2, aes(x=game_number,y=rolling_three_perc))+
+      geom_line(aes(),color = "steelblue1",size = 1)+
+      scale_y_continuous(labels = percent,limits = c(.15,.6))+
+      scale_x_continuous(limits = c(5,37))+
+      geom_hline(yintercept = three_team2$team_mean_three,linetype = "dashed", color = "steelblue1",size = 1.1)+
+      geom_hline(yintercept = three_team2$avg_three,linetype = "dashed", color = "black",size=1.1)+
+      #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+      theme_minimal()+
+      labs(y = "",
+           x= "",
+           title = "Three Attempt Rate Allowed")+
+      theme(plot.title = element_text(size = 22, hjust = 0.5))+
+      theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
+      theme(strip.text = element_text(size=20))+
+      theme(axis.text.x = element_text(size=14),
+            axis.text.y = element_text(size=14))
+    
+    
+    adj_o_team_chart2 <- ggplot(team_game2, aes(x=game_number,y=rolling_adj_d))+
+      geom_line(aes(),color = "steelblue1",size = 1)+
+      scale_y_continuous(limits = c(140,70))+
+      scale_x_continuous(limits = c(5,37))+
+      geom_hline(yintercept = team_game2$team_avg_adj_d,linetype = "dashed", color = "steelblue1",size = 1.1)+
+      geom_hline(yintercept = team_game2$avg_adj_d,linetype = "dashed", color = "black",size=1.1)+
+      #minor_breaks = seq(0, 1, 10), breaks = seq(0, 1, 25))+
+      theme_minimal()+
+      labs(y = "",
+           x= "",
+           title = "Defensive Efficiency (Adj)")+
+      theme(plot.title = element_text(size = 22, hjust = 0.5))+
+      theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
+      theme(strip.text = element_text(size=20))+
+      theme(axis.text.x = element_text(size=14),
+            axis.text.y = element_text(size=14))
+    
+    
+    # Title
+    
+    
+    
+    vs <- 
+      ggplot(data = team_ids)+
+      theme_void()+
+      geom_text(aes(x = 1, y = 1.5, label = "Offense vs. Defense"), size = 10)+
+      theme(axis.text.y = element_blank(),
+            legend.position = "none",
+            axis.text.x = element_blank(),
+            plot.caption = element_text(size = 8),
+            panel.background = element_blank())
+    
+    
+    off_team_logo <- team_ids%>%
+      filter(team_location == "Duke")
+    
+    
+    off_team_logo <- ggplot(data = off_team_logo)+
+      theme_minimal()+
+      ggdraw()+
+      draw_image(off_team_logo$team_logo,hjust = .5)
+    
+    
+    def_team_logo <- team_ids%>%
+      filter(team_location == "Houston")
+    
+    
+    def_team_logo <- ggplot(data = def_team_logo)+
+      theme_minimal()+
+      ggdraw()+
+      draw_image(def_team_logo$team_logo,hjust = .5)
+    
+    
+    
+    # Shots Table
+    
+    
+    shots_table <- player_game%>%
+      filter(team == "Duke")%>%
+      group_by(date,team)%>%
+      mutate(total_game_rim_a = sum(rim_a),
+             total_game_rim_m = sum(rim_m),
+             rim_perc = total_game_rim_m/total_game_rim_a,
+             total_game_mid_a = sum(mid_a),
+             total_game_mid_m = sum(mid_m),
+             mid_perc = total_game_mid_m/total_game_mid_a,
+             total_game_three_a = sum(three_a),
+             total_game_three_m = sum(three_m),
+             three_perc = total_game_three_m/total_game_three_a,
+             total_game_fta = sum(fta),
+             total_game_ftm = sum(ftm),
+             ft_perc = total_game_ftm/total_game_fta,
+             total_game_pts= sum(pts),
+             total_game_attempts = total_game_rim_a+total_game_mid_a+total_game_three_a)%>%
+      pivot_longer(c(total_game_rim_a,total_game_mid_a,total_game_three_a,total_game_fta),
+                   names_to = "attempt_location",values_to = "attempt_values")%>%
+      pivot_longer(c(total_game_rim_m,total_game_mid_m,total_game_three_m,total_game_ftm),
+                   names_to = "made_location",values_to = "made_values")%>%
+      pivot_longer(c(rim_perc,mid_perc,three_perc,ft_perc),
+                   names_to = "location_shooting_perc",values_to = "shooting_perc")%>%
+      mutate(attempt_location_perc = round(attempt_values/total_game_attempts,3))%>%
+      mutate(made_location_perc = round(made_values/total_game_pts,3),
+             Location = case_when(attempt_location == "total_game_rim_a"~ "Rim",
+                                  attempt_location == "total_game_mid_a"~ "Mid Range",
+                                  attempt_location == "total_game_three_a"~ "3 Pointer",
+                                  attempt_location == "total_game_fta"~ "Free Throw",
+                                  location_shooting_perc == "rim_perc"~ "Rim",
+                                  location_shooting_perc == "mid_perc"~ "Mid Range",
+                                  location_shooting_perc == "three_perc"~ "3 Pointer",
+                                  location_shooting_perc == "ft_perc"~ "Free Throw"))%>%
+      select(team,conf,opp,result,attempt_location,attempt_location_perc,Location,location_shooting_perc,shooting_perc)
+    
+    
+    shots_table <- shots_table%>%
+      mutate(true_location = case_when(Location == "Rim" & location_shooting_perc ==	"rim_perc" ~ "Rim",
+                                       Location == "Mid Range" & location_shooting_perc ==	"mid_perc" ~ "Mid Range",
+                                       Location == "3 Pointer" & location_shooting_perc ==	"three_perc" ~ "3 Pointer",
+                                       Location == "Free Throw" & location_shooting_perc ==	"ft_perc" ~ "Free Throw"))%>%
+      filter(!is.na(true_location))%>%
+      rename(Result = "result")
+    
+    
+    
+    shots_table <- shots_table[!duplicated(shots_table), ]
+    
+    new_shots_table <- shots_table%>%
+      ungroup()%>%
+      group_by(true_location)%>%
+      mutate(avg_attempt_location = mean(attempt_location_perc),
+             avg_shooting_perc = mean(shooting_perc))%>%
+    reframe(team,avg_shooting_perc,avg_attempt_location,true_location)
+    
+    
+    new_shots_table <- new_shots_table[!duplicated(new_shots_table), ]
+    
+    # Def Shots Table
+    
+    
+    shots_table2 <- player_game%>%
+      filter(opp == "Houston")%>%
+      group_by(date,opp)%>%
+      mutate(total_game_rim_a = sum(rim_a),
+             total_game_rim_m = sum(rim_m),
+             rim_perc = total_game_rim_m/total_game_rim_a,
+             total_game_mid_a = sum(mid_a),
+             total_game_mid_m = sum(mid_m),
+             mid_perc = total_game_mid_m/total_game_mid_a,
+             total_game_three_a = sum(three_a),
+             total_game_three_m = sum(three_m),
+             three_perc = total_game_three_m/total_game_three_a,
+             total_game_fta = sum(fta),
+             total_game_ftm = sum(ftm),
+             ft_perc = total_game_ftm/total_game_fta,
+             total_game_pts= sum(pts),
+             total_game_attempts = total_game_rim_a+total_game_mid_a+total_game_three_a)%>%
+      pivot_longer(c(total_game_rim_a,total_game_mid_a,total_game_three_a,total_game_fta),
+                   names_to = "attempt_location",values_to = "attempt_values")%>%
+      pivot_longer(c(total_game_rim_m,total_game_mid_m,total_game_three_m,total_game_ftm),
+                   names_to = "made_location",values_to = "made_values")%>%
+      pivot_longer(c(rim_perc,mid_perc,three_perc,ft_perc),
+                   names_to = "location_shooting_perc",values_to = "shooting_perc")%>%
+      mutate(attempt_location_perc = round(attempt_values/total_game_attempts,3))%>%
+      mutate(made_location_perc = round(made_values/total_game_pts,3),
+             Location = case_when(attempt_location == "total_game_rim_a"~ "Rim",
+                                  attempt_location == "total_game_mid_a"~ "Mid Range",
+                                  attempt_location == "total_game_three_a"~ "3 Pointer",
+                                  attempt_location == "total_game_fta"~ "Free Throw",
+                                  location_shooting_perc == "rim_perc"~ "Rim",
+                                  location_shooting_perc == "mid_perc"~ "Mid Range",
+                                  location_shooting_perc == "three_perc"~ "3 Pointer",
+                                  location_shooting_perc == "ft_perc"~ "Free Throw"))%>%
+      select(team,conf,opp,result,attempt_location,attempt_location_perc,Location,location_shooting_perc,shooting_perc)
+    
+    
+    shots_table2 <- shots_table2%>%
+      mutate(true_location = case_when(Location == "Rim" & location_shooting_perc ==	"rim_perc" ~ "Rim",
+                                       Location == "Mid Range" & location_shooting_perc ==	"mid_perc" ~ "Mid Range",
+                                       Location == "3 Pointer" & location_shooting_perc ==	"three_perc" ~ "3 Pointer",
+                                       Location == "Free Throw" & location_shooting_perc ==	"ft_perc" ~ "Free Throw"))%>%
+      filter(!is.na(true_location))%>%
+      rename(Result = "result")
+    
+    
+    
+    shots_table2 <- shots_table2[!duplicated(shots_table2), ]
+    
+    
+    
+    new_shots_table2 <- shots_table2%>%
+      ungroup()%>%
+      group_by(true_location)%>%
+      mutate(avg_attempt_location = mean(attempt_location_perc),
+             avg_shooting_perc = mean(shooting_perc))%>%
+      reframe(opp,avg_shooting_perc,avg_attempt_location,true_location)
+    
+    
+    new_shots_table2 <- new_shots_table2[!duplicated(new_shots_table2), ]
+    
+    
+    final_shots_table <- new_shots_table%>%
+      left_join(new_shots_table2, by = "true_location")%>%
+      reframe(team,avg_shooting_perc.x,avg_attempt_location.x,true_location,
+              opp,avg_attempt_location.y,avg_shooting_perc.y)%>%
+      filter(true_location != "Free Throw")
+    
+    
+    final_shots <- 
+      
+      gt(final_shots_table)%>%
+      gt_theme_538()%>%
+      cols_hide(c(team,opp)) %>% 
+      cols_label( avg_shooting_perc.x = "FG%",
+                  avg_attempt_location.x = "Frequency",
+                  true_location = "",
+                  avg_attempt_location.y = "Frequency",
+                  avg_shooting_perc.y = "FG%")%>%
+      # data_color(columns = per_game_percentile_values,
+      #            target_columns = values,
+      #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+      #            domain = c(0,1))%>%
+      # data_color(columns = per_game_percentile_values.1,
+      #            target_columns = values.1,
+      #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+      #            domain = c(0,1))%>%
+      # data_color(columns = per_40_percentile_values,
+      #            target_columns = per_40,
+      #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+      #            domain = c(0,1))%>%
+      fmt_percent(columns = c(avg_shooting_perc.x,avg_attempt_location.x,
+                              avg_attempt_location.y,avg_shooting_perc.y),decimals = 1)%>%
+      #fmt_number(columns = c(values,values.1,per_40),decimals = 1)%>%
+      gt_add_divider(c(avg_attempt_location.x,true_location), color = 'black', include_labels = FALSE) %>%
+      gt::cols_align(
+        align = "center",
+        columns = c(avg_shooting_perc.x,avg_attempt_location.x,true_location,
+                    avg_attempt_location.y,avg_shooting_perc.y))%>%
+    tab_header(title = "Shot Selection")%>%
+      opt_align_table_header(align = "center")
+    
+    
+    tmp<- tempfile(fileext = ".png")
+    gtsave(final_shots,tmp)
+    shots_png <- png::readPNG(tmp,native = TRUE)
+    
+    
+    
+    # Off Shots Splits
+    
+    
+    off_player_split <- cbd_torvik_player_split(year = 2024, split = "result", team = "Duke")
+    
+    
+    def_player_split <- cbd_torvik_player_split(year = 2024, split = "result", team = "Houston")
+    
+    
+    
+    
+    win_loss_rate <- shots_table%>%
+      group_by(Result,true_location)%>%
+      mutate(avg_attempt_percentage = mean(attempt_location_perc),
+             avg_shooting_perc = mean(shooting_perc))%>%
+      select(team,Result,true_location,avg_attempt_percentage,avg_shooting_perc)%>%
+      ungroup()
+    
+    
+    
+    
+    win_loss_rate <- win_loss_rate[!duplicated(win_loss_rate), ]
+    
+    
+    win_loss_rate_diff <-  win_loss_rate%>%
+      group_by(team,true_location)%>%
+      mutate(diff = sum(case_when(
+        Result == "W" ~ avg_attempt_percentage,
+        Result == "L" ~ -avg_attempt_percentage,
+        TRUE ~ 0)),
+        diff2 = sum(case_when(
+          Result == "W" ~ avg_shooting_perc,
+          Result == "L" ~ -avg_shooting_perc,
+          TRUE ~ 0)),
+        loss = avg_attempt_percentage-diff)%>%
+      reframe(team,diff,diff2)
+    
+    
+    win_loss_rate_diff <- win_loss_rate_diff[!duplicated(win_loss_rate_diff), ]
+    #win_loss_rate_diff <- options(scipen=999)
+    
+    
+    
+    
+    
+    
+    
+    
+    #Def Shots Split
+    
+    
+    
+    
+    win_loss_rate2 <- shots_table2%>%
+      group_by(Result,true_location)%>%
+      mutate(avg_attempt_percentage = mean(attempt_location_perc),
+             avg_shooting_perc = mean(shooting_perc))%>%
+      select(opp,Result,true_location,avg_attempt_percentage,avg_shooting_perc)%>%
+      ungroup()
+    
+    
+    
+    
+    win_loss_rate2 <- win_loss_rate2[!duplicated(win_loss_rate2), ]
+    
+    
+    win_loss_rate_diff2 <-  win_loss_rate2%>%
+      group_by(opp,true_location)%>%
+      mutate(diff = sum(case_when(
+        Result == "W" ~ -avg_attempt_percentage,
+        Result == "L" ~ avg_attempt_percentage,
+        TRUE ~ 0)),
+        diff2 = sum(case_when(
+          Result == "W" ~ -avg_shooting_perc,
+          Result == "L" ~ avg_shooting_perc,
+          TRUE ~ 0)),
+        loss = avg_attempt_percentage-diff)%>%
+      #reframe(opp,avg_attempt_percentage,loss,diff)
+      reframe(opp,diff,diff2)
+    
+    
+    win_loss_rate_diff2 <- win_loss_rate_diff2[!duplicated(win_loss_rate_diff2), ]
+    
+    
+    final_win_loss_rate = win_loss_rate_diff%>%
+      left_join(win_loss_rate_diff2, by = "true_location")%>%
+      filter(true_location != "Free Throw")%>%
+      reframe(diff2.x,diff.x,true_location,diff.y,diff2.y)
+    
+    
+    
+    final_win_loss <- 
+      
+      gt(final_win_loss_rate)%>%
+      gt_theme_538()%>%
+      #cols_hide(c(team,opp)) %>% 
+      cols_label( diff2.x = "Diff in FG%",
+                  diff.x = "Diff in Frequency",
+                  true_location = "",
+                  diff.y = "Diff in Frequency",
+                  diff2.y = "Diff in FG%")%>%
+      # data_color(columns = per_game_percentile_values,
+      #            target_columns = values,
+      #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+      #            domain = c(0,1))%>%
+      # data_color(columns = per_game_percentile_values.1,
+      #            target_columns = values.1,
+      #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+      #            domain = c(0,1))%>%
+      # data_color(columns = per_40_percentile_values,
+      #            target_columns = per_40,
+      #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+    #            domain = c(0,1))%>%
+    fmt_percent(columns = c(diff.x,diff2.x,
+                            diff.y,diff2.y),decimals = 1)%>%
+      #fmt_number(columns = c(values,values.1,per_40),decimals = 1)%>%
+      gt_add_divider(c(diff.x,true_location), color = 'black', include_labels = FALSE) %>%
+      gt::cols_align(
+        align = "center",
+        columns = c(diff.x,diff2.x,
+                    diff.y,diff2.y))%>%
+      tab_header(title = "Change in Wins vs. Losses")%>%
+      opt_align_table_header(align = "center")
+    
+    
+    tmp<- tempfile(fileext = ".png")
+    gtsave(final_win_loss,tmp)
+    win_loss_png <- png::readPNG(tmp,native = TRUE)
+    
+    
+    # By Shot Clock
+    
+    
+    
+    shot_clock <- tibble(
+      three_A_perc = c("80","42","46","30"),
+      three_A = c(".429",".365",".357",".361"),
+      three_perc = c("90","82","76","50"),
+      three_pct = c(".52",".394",".307",".136"),
+      two_perc = c("71","81","86","95"),
+      two_pct = c(".71",".563",".457",".333"),
+      PPP_perc = c("98","93","96","98"),
+      PPP = c("1.31","1.16","1.11","1.15"),
+      freq_perc = c("42","92","26","29"),
+      freq = c(".27",".464",".217",".049"),
+   
+      clock = c("0-10 Secs", "11-20 Secs","21-30 Secs","31+ Secs"),
+      
+      freq2 = c(".253",".427",".256",".064"),
+      freq2_perc = c("90","41","21","26"),
+      PPP2 = c("1.08",".88",".81",".59"),
+      PPP2_perc = c("92","100","100","99"),
+      two2_pct = c(".63",".457",".362",".205"),
+      two2_perc = c("93","96","94","93"),
+      three2_pct = c(".432",".338",".242",".105"),
+      three2_perc = c("90","82","76","50"),
+      three2_A = c(".385",".427",".38",".424"),
+      three2_A_perc = c("38","15","37","26"))
+    
+    
+    
+    shot_clock_table <- 
+      
+      gt(shot_clock)%>%
+      gt_theme_538()%>%
+      cols_hide(c(freq2_perc,PPP2_perc,two2_perc,three2_perc,three2_A_perc,
+                  freq_perc,PPP_perc,two_perc,three_perc,three_A_perc)) %>% 
+      cols_label(
+        clock = "",
+        freq2 = "Frequency",
+        PPP2 = "PPP",
+        two2_pct = "2P%",
+        three2_pct = "3P%",
+        three2_A = "3 Attempt Rate",
+        freq = "Frequency",
+        PPP = "PPP",
+        two_pct = "2P%",
+        three_pct = "3P%",
+        three_A = "3 Attempt Rate")%>%
+      # data_color(columns = per_game_percentile_values,
+      #            target_columns = values,
+      #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+      #            domain = c(0,1))%>%
+      # data_color(columns = per_game_percentile_values.1,
+      #            target_columns = values.1,
+      #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+      #            domain = c(0,1))%>%
+      # data_color(columns = per_40_percentile_values,
+      #            target_columns = per_40,
+      #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+    #            domain = c(0,1))%>%
+    fmt_percent(columns = c(freq,two_pct,three_pct,three_A,
+                            freq2,two2_pct,three2_pct,three2_A),decimals = 2)%>%
+      #fmt_number(columns = c(values,values.1,per_40),decimals = 1)%>%
+      gt_add_divider(c(freq,clock), color = 'black', include_labels = FALSE) %>%
+      gt::cols_align(
+        align = "center",
+        columns = c(everything()))%>%
+      tab_header(title = "Shot Clock")%>%
+      opt_align_table_header(align = "center")
+    
+    
+    tmp<- tempfile(fileext = ".png")
+    gtsave(final_win_loss,tmp)
+    win_loss_png <- png::readPNG(tmp,native = TRUE)
+    
+    
+    
+    
