@@ -112,8 +112,8 @@
       theme_minimal()+
       labs(y = "",
            x= "",
-           title = "Rim Attempt Rate")+
-      theme(plot.title = element_text(size = 22, hjust = 0.5))+
+           title = "Rim Att. Rate")+
+      theme(plot.title = element_text(size = 20, hjust = 0.5))+
       theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
       theme(strip.text = element_text(size=20))+
       theme(axis.text.x = element_text(size=14),
@@ -131,8 +131,8 @@
       theme_minimal()+
       labs(y = "",
            x= "",
-           title = "Three Attempt Rate")+
-      theme(plot.title = element_text(size = 22, hjust = 0.5))+
+           title = "3P Att. Rate")+
+      theme(plot.title = element_text(size = 20, hjust = 0.5))+
       theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
       theme(strip.text = element_text(size=20))+
       theme(axis.text.x = element_text(size=14),
@@ -150,7 +150,7 @@
       labs(y = "",
            x= "",
            title = "Offensive Efficiency (Adj)")+
-      theme(plot.title = element_text(size = 22, hjust = 0.5))+
+      theme(plot.title = element_text(size = 20, hjust = 0.2))+
       theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
       theme(strip.text = element_text(size=20))+
       theme(axis.text.x = element_text(size=14),
@@ -255,8 +255,8 @@
       theme_minimal()+
       labs(y = "",
            x= "",
-           title = "Rim Attempt Rate Allowed")+
-      theme(plot.title = element_text(size = 22, hjust = 0.5))+
+           title = "Rim Att. Rate Allowed")+
+      theme(plot.title = element_text(size = 20, hjust = 0.9))+
       theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
       theme(strip.text = element_text(size=20))+
       theme(axis.text.x = element_text(size=14),
@@ -274,8 +274,8 @@
       theme_minimal()+
       labs(y = "",
            x= "",
-           title = "Three Attempt Rate Allowed")+
-      theme(plot.title = element_text(size = 22, hjust = 0.5))+
+           title = "3P Att. Rate Allowed")+
+      theme(plot.title = element_text(size = 20, hjust = 0.9))+
       theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
       theme(strip.text = element_text(size=20))+
       theme(axis.text.x = element_text(size=14),
@@ -284,7 +284,7 @@
     
     adj_o_team_chart2 <- ggplot(team_game2, aes(x=game_number,y=rolling_adj_d))+
       geom_line(aes(),color = "steelblue1",size = 1)+
-      scale_y_continuous(limits = c(140,70))+
+      scale_y_continuous(limits = c(70,140))+
       scale_x_continuous(limits = c(5,37))+
       geom_hline(yintercept = team_game2$team_avg_adj_d,linetype = "dashed", color = "steelblue1",size = 1.1)+
       geom_hline(yintercept = team_game2$avg_adj_d,linetype = "dashed", color = "black",size=1.1)+
@@ -293,11 +293,20 @@
       labs(y = "",
            x= "",
            title = "Defensive Efficiency (Adj)")+
-      theme(plot.title = element_text(size = 22, hjust = 0.5))+
+      theme(plot.title = element_text(size = 20, hjust = 0.9))+
       theme(plot.subtitle = element_text(size = 22,hjust = 0.5))+
       theme(strip.text = element_text(size=20))+
       theme(axis.text.x = element_text(size=14),
             axis.text.y = element_text(size=14))
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     # Title
@@ -307,7 +316,25 @@
     vs <- 
       ggplot(data = team_ids)+
       theme_void()+
-      geom_text(aes(x = 1, y = 1.5, label = "Offense vs. Defense"), size = 10)+
+      ggdraw()+
+      annotate("text",x = -.55, y = .8, label = "Offense"
+               , color="#012169",hjust = .5,size = 15) +
+      annotate("text",x = .05, y = .7, label = "vs."
+               , color="black",hjust = .5,size = 10) +
+      annotate("text", x = .65, y= .8, hjust = .5, 
+               label="Defense", color="#C8102E",size = 15)
+      
+      
+      annotate("text", x = firebird$wt, y=firebird$mpg, hjust = 0, parse=T, 
+               label='"Pon" * phantom("tiac Firebird")', color="white") +
+      annotate("text", x = firebird$wt, y=firebird$mpg, hjust = 0, parse=T, 
+               label='phantom("Pon") * "tiac Firebird"', color="black")
+      draw_label("Offense vs. Defense",size = 38,hjust=.7,vjust = .1)
+      
+      
+      
+      
+      geom_text(aes(x = 1, y = 3, label = "Offense vs. Defense"), size = 10,vjust = .75)+
       theme(axis.text.y = element_blank(),
             legend.position = "none",
             axis.text.x = element_blank(),
@@ -322,7 +349,7 @@
     off_team_logo <- ggplot(data = off_team_logo)+
       theme_minimal()+
       ggdraw()+
-      draw_image(off_team_logo$team_logo,hjust = .5)
+      draw_image(off_team_logo$team_logo,halign = 0,hjust = .1,valign = 0,vjust = .1,scale = 2)
     
     
     def_team_logo <- team_ids%>%
@@ -332,7 +359,7 @@
     def_team_logo <- ggplot(data = def_team_logo)+
       theme_minimal()+
       ggdraw()+
-      draw_image(def_team_logo$team_logo,hjust = .5)
+      draw_image(def_team_logo$team_logo,halign = 0,hjust = .8, vjust = .1,valign = 0,scale = 2)
     
     
     
@@ -340,7 +367,6 @@
     
     
     shots_table <- player_game%>%
-      filter(team == "Duke")%>%
       group_by(date,team)%>%
       mutate(total_game_rim_a = sum(rim_a),
              total_game_rim_m = sum(rim_m),
@@ -381,6 +407,10 @@
                                        Location == "3 Pointer" & location_shooting_perc ==	"three_perc" ~ "3 Pointer",
                                        Location == "Free Throw" & location_shooting_perc ==	"ft_perc" ~ "Free Throw"))%>%
       filter(!is.na(true_location))%>%
+      ungroup()%>%
+    group_by(team,true_location)%>%
+      mutate(loc_percentile = round(rank(attempt_location_perc) / length(attempt_location_perc)*100,0),
+             shooting_percentile = round(rank(shooting_perc) / length(shooting_perc)*100,0))
       rename(Result = "result")
     
     
@@ -475,7 +505,7 @@
       cols_hide(c(team,opp)) %>% 
       cols_label( avg_shooting_perc.x = "FG%",
                   avg_attempt_location.x = "Frequency",
-                  true_location = "",
+                  true_location = md("**Team Shot Selection**"),
                   avg_attempt_location.y = "Frequency",
                   avg_shooting_perc.y = "FG%")%>%
       # data_color(columns = per_game_percentile_values,
@@ -493,13 +523,24 @@
       fmt_percent(columns = c(avg_shooting_perc.x,avg_attempt_location.x,
                               avg_attempt_location.y,avg_shooting_perc.y),decimals = 1)%>%
       #fmt_number(columns = c(values,values.1,per_40),decimals = 1)%>%
-      gt_add_divider(c(avg_attempt_location.x,true_location), color = 'black', include_labels = FALSE) %>%
+      gt_add_divider(c(avg_attempt_location.x,true_location), color = 'black', include_labels = TRUE) %>%
       gt::cols_align(
         align = "center",
         columns = c(avg_shooting_perc.x,avg_attempt_location.x,true_location,
                     avg_attempt_location.y,avg_shooting_perc.y))%>%
-    tab_header(title = "Shot Selection")%>%
-      opt_align_table_header(align = "center")
+      tab_style(
+        list(cell_fill(color = '#012169'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("avg_shooting_perc.x"))%>%
+      tab_style(
+        list(cell_fill(color = '#012169'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("avg_attempt_location.x"))%>%
+      tab_style(
+        list(cell_fill(color = '#C8102E'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("avg_shooting_perc.y"))%>%
+      tab_style(
+        list(cell_fill(color = '#C8102E'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("avg_attempt_location.y"))
+    
     
     
     tmp<- tempfile(fileext = ".png")
@@ -604,11 +645,11 @@
       gt(final_win_loss_rate)%>%
       gt_theme_538()%>%
       #cols_hide(c(team,opp)) %>% 
-      cols_label( diff2.x = "Diff in FG%",
-                  diff.x = "Diff in Frequency",
-                  true_location = "",
-                  diff.y = "Diff in Frequency",
-                  diff2.y = "Diff in FG%")%>%
+      cols_label( diff2.x = "FG% Diff.",
+                  diff.x = "Freq. Diff.",
+                  true_location = md("**Diff. Wins vs. Losses**"),
+                  diff.y = "Freq. Diff.",
+                  diff2.y = "FG% Diff.")%>%
       # data_color(columns = per_game_percentile_values,
       #            target_columns = values,
       #            palette = c("red", "indianred1","white", "steelblue1","blue"),
@@ -624,15 +665,28 @@
     fmt_percent(columns = c(diff.x,diff2.x,
                             diff.y,diff2.y),decimals = 1)%>%
       #fmt_number(columns = c(values,values.1,per_40),decimals = 1)%>%
-      gt_add_divider(c(diff.x,true_location), color = 'black', include_labels = FALSE) %>%
+      gt_add_divider(c(diff.x,true_location), color = 'black', include_labels = TRUE) %>%
       gt::cols_align(
         align = "center",
         columns = c(diff.x,diff2.x,
-                    diff.y,diff2.y))%>%
-      tab_header(title = "Change in Wins vs. Losses")%>%
-      opt_align_table_header(align = "center")
+                    diff.y,diff2.y,true_location))%>%
+      tab_style(
+        list(cell_fill(color = '#012169'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("diff.x"))%>%
+      tab_style(
+        list(cell_fill(color = '#012169'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("diff2.x"))%>%
+      tab_style(
+        list(cell_fill(color = '#C8102E'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("diff.y"))%>%
+      tab_style(
+        list(cell_fill(color = '#C8102E'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("diff2.y"))
+      
     
     
+      
+      
     tmp<- tempfile(fileext = ".png")
     gtsave(final_win_loss,tmp)
     win_loss_png <- png::readPNG(tmp,native = TRUE)
@@ -667,6 +721,15 @@
       three2_A = c(".385",".427",".38",".424"),
       three2_A_perc = c("38","15","37","26"))
     
+    # shot_clock <- as.numeric(c("freq","two_pct","three_pct","three_A",
+    #              "freq2","two2_pct","three2_pct","three2_A"))
+    
+    shot_clock <- shot_clock%>%
+      mutate_at(c("freq","two_pct","three_pct","three_A",
+                "freq2","two2_pct","three2_pct","three2_A",
+                "freq2_perc","PPP2_perc","two2_perc","three2_perc","three2_A_perc",
+                "freq_perc","PPP_perc","two_perc","three_perc","three_A_perc"), as.numeric)
+    
     
     
     shot_clock_table <- 
@@ -674,19 +737,20 @@
       gt(shot_clock)%>%
       gt_theme_538()%>%
       cols_hide(c(freq2_perc,PPP2_perc,two2_perc,three2_perc,three2_A_perc,
-                  freq_perc,PPP_perc,two_perc,three_perc,three_A_perc)) %>% 
+                  freq_perc,PPP_perc,two_perc,three_perc,three_A_perc,
+                  two_pct,three_pct,two2_pct,three2_pct)) %>% 
       cols_label(
-        clock = "",
-        freq2 = "Frequency",
+        clock = md("**Shot Clock Scoring**"),
+        freq2 = "Freq.",
         PPP2 = "PPP",
         two2_pct = "2P%",
         three2_pct = "3P%",
-        three2_A = "3 Attempt Rate",
-        freq = "Frequency",
+        three2_A = "3 Att Rate",
+        freq = "Freq.",
         PPP = "PPP",
         two_pct = "2P%",
         three_pct = "3P%",
-        three_A = "3 Attempt Rate")%>%
+        three_A = "3 Att Rate")%>%
       # data_color(columns = per_game_percentile_values,
       #            target_columns = values,
       #            palette = c("red", "indianred1","white", "steelblue1","blue"),
@@ -699,21 +763,167 @@
       #            target_columns = per_40,
       #            palette = c("red", "indianred1","white", "steelblue1","blue"),
     #            domain = c(0,1))%>%
-    fmt_percent(columns = c(freq,two_pct,three_pct,three_A,
-                            freq2,two2_pct,three2_pct,three2_A),decimals = 2)%>%
+    fmt_percent(columns = c(freq,three_A,
+                            freq2,three2_A),decimals = 1)%>%
       #fmt_number(columns = c(values,values.1,per_40),decimals = 1)%>%
-      gt_add_divider(c(freq,clock), color = 'black', include_labels = FALSE) %>%
+      gt_add_divider(c(freq,clock), color = 'black', include_labels = TRUE) %>%
       gt::cols_align(
         align = "center",
         columns = c(everything()))%>%
-      tab_header(title = "Shot Clock")%>%
-      opt_align_table_header(align = "center")
+      tab_style(
+        list(cell_fill(color = '#012169'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("freq"))%>%
+      tab_style(
+        list(cell_fill(color = '#012169'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("PPP"))%>%
+      tab_style(
+        list(cell_fill(color = '#C8102E'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("freq2"))%>%
+      tab_style(
+        list(cell_fill(color = '#C8102E'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("PPP2"))%>%
+      tab_style(
+        list(cell_fill(color = '#012169'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("three_A"))%>%
+      tab_style(
+        list(cell_fill(color = '#C8102E'),cell_text(weight = "bold",color = "white")),
+        cells_column_labels("three2_A"))
+      
+    
     
     
     tmp<- tempfile(fileext = ".png")
-    gtsave(final_win_loss,tmp)
-    win_loss_png <- png::readPNG(tmp,native = TRUE)
+    gtsave(shot_clock_table,tmp)
+    shot_clock_table <- png::readPNG(tmp,native = TRUE)
+    
+    
+    # By Position
+    
+    player_position_box <- load_mbb_player_box(seasons = most_recent_mbb_season())
+    
+    
+    pos_perc <- player_position_box%>%
+      filter(!is.na(minutes))%>%
+      group_by(team_id)%>%
+      mutate(total_points_allowed = sum(points))%>%
+      ungroup()%>%
+      group_by(team_id, athlete_position_name)%>%
+      mutate(total_points_pos_group = sum(points),
+             pos_group_perc_points_allowed = total_points_pos_group/total_points_allowed,
+             efg = (sum(field_goals_made) + .5 * (sum(three_point_field_goals_made)))/sum(field_goals_attempted))%>%
+      ungroup()%>%
+      group_by(athlete_position_name)%>%
+      mutate(percentile = round(rank(pos_group_perc_points_allowed) / length(pos_group_perc_points_allowed)*100,0),
+             efg_percentile = round(rank(efg) / length(efg)*100,0))%>%
+      reframe(team_location,total_points_allowed,athlete_position_abbreviation,total_points_pos_group,
+             pos_group_perc_points_allowed,percentile,efg,efg_percentile)%>%
+      ungroup()
+    
+    
+    pos_perc <- pos_perc[!duplicated(pos_perc), ]
+    
+    pos_team_perc <- pos_perc%>%
+      filter(team_location == "Duke")%>%
+      reframe(team_location,efg, pos_group_perc_points_allowed,athlete_position_name,percentile,efg_percentile)
+    
+    
+    
+    opp_pos_perc <- player_position_box%>%
+      filter(!is.na(minutes),athlete_position_abbreviation != "ATH")%>%
+      group_by(opponent_team_id)%>%
+      mutate(total_points_allowed = sum(points))%>%
+      ungroup()%>%
+      group_by(opponent_team_id, athlete_position_name)%>%
+      mutate(total_points_pos_group = sum(points),
+             pos_group_perc_points_allowed = round(total_points_pos_group/total_points_allowed,3),
+             efg = (sum(field_goals_made) + .5 * (sum(three_point_field_goals_made)))/sum(field_goals_attempted))%>%
+      ungroup()%>%
+      group_by(athlete_position_name)%>%
+      mutate(percentile = round(rank(pos_group_perc_points_allowed) / length(pos_group_perc_points_allowed)*100,0),
+             efg_percentile = round(rank(efg) / length(efg)*100,0))%>%
+      select(opponent_team_location,total_points_allowed,athlete_position_abbreviation,total_points_pos_group,
+             pos_group_perc_points_allowed,percentile,efg,efg_percentile)%>%
+      ungroup()
+    
+    
+    
+    opp_pos_perc <- opp_pos_perc[!duplicated(opp_pos_perc), ]
+    
+    opp_pos_team_perc <- opp_pos_perc%>%
+      filter(opponent_team_location == "Houston")%>%
+      rename(Position = athlete_position_abbreviation)%>%
+        reframe(opponent_team_location,pos_group_perc_points_allowed,efg,athlete_position_name,percentile,efg_percentile)
+    
+    final_pos <- pos_team_perc%>%
+      left_join(opp_pos_team_perc, by = "athlete_position_name")
     
     
     
     
+   pos_table <- 
+      
+      gt(final_pos)%>%
+      gt_theme_538()%>%
+      cols_hide(c(team_location,opponent_team_location,percentile.x,percentile.y,
+                  efg_percentile.x,efg_percentile.y)) %>% 
+      cols_label(
+        athlete_position_name = md("**Positional Scoring**"),
+        efg.x = "eFG%",
+        pos_group_perc_points_allowed.x = "% of Points",
+        efg.y = "eFG%",
+        pos_group_perc_points_allowed.y = "% of Points",)%>%
+      # data_color(columns = per_game_percentile_values,
+      #            target_columns = values,
+      #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+      #            domain = c(0,1))%>%
+      # data_color(columns = per_game_percentile_values.1,
+      #            target_columns = values.1,
+      #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+      #            domain = c(0,1))%>%
+      # data_color(columns = per_40_percentile_values,
+      #            target_columns = per_40,
+      #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+    #            domain = c(0,1))%>%
+    fmt_percent(columns = c(efg.x, pos_group_perc_points_allowed.x,
+                            efg.y, pos_group_perc_points_allowed.y),decimals = 1)%>%
+      #fmt_number(columns = c(values,values.1,per_40),decimals = 1)%>%
+      gt_add_divider(c(pos_group_perc_points_allowed.x,athlete_position_name), color = 'black', include_labels = TRUE) %>%
+      gt::cols_align(
+        align = "center",
+        columns = c(everything()))%>%
+     tab_style(
+       list(cell_fill(color = '#012169'),cell_text(color = "white")),
+       cells_column_labels("efg.x"))%>%
+     tab_style(
+       list(cell_fill(color = '#012169'),cell_text(color = "white")),
+       cells_column_labels("pos_group_perc_points_allowed.x"))%>%
+     tab_style(
+       list(cell_fill(color = '#C8102E'),cell_text(color = "white")),
+       cells_column_labels("efg.y"))%>%
+     tab_style(
+       list(cell_fill(color = '#C8102E'),cell_text(color = "white")),
+       cells_column_labels("pos_group_perc_points_allowed.y"))
+   
+   
+    
+    tmp<- tempfile(fileext = ".png")
+    gtsave(pos_table,tmp)
+    pos_table <- png::readPNG(tmp,native = TRUE)
+    
+    
+    
+    
+    
+    title <- (off_team_logo | vs | def_team_logo)+ plot_layout(widths = c(1,2,1))
+    
+    middle <- (title / shots_png / win_loss_png / pos_table / shot_clock_table) +plot_layout(heights = c(1,3,3,3,3))
+    
+    
+   off_rolling <-  adj_o_team_chart /rim_team_chart / three_team_chart  
+   def_rolling <-  adj_o_team_chart2 /rim_team_chart2 / three_team_chart2
+    
+    
+   (off_rolling | middle | def_rolling) + plot_layout(ncol = 3,widths = c(1,5,1))
+   
+   
+   
