@@ -4,7 +4,6 @@
   library(cbbdata)
   
   
-  cbbdata::cbd_login(username = "RyanMiele", password = "Hughes86")
   
   
   
