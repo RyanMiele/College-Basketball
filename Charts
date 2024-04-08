@@ -38,12 +38,7 @@
      
      all_pbp <- get_pbp(team = "all", season ="2023-24")
      ids<- data(ids)
-     cbbdata::cbd_create_account(username = "RyanMiele", email = "ryancmiele@gmail.com", 
-                                 password = "Hughes86", confirm_password = "Hughes86")
-     
-     cbbdata::cbd_login(username = "RyanMiele", password = "Hughes86")
-    
-     
+ 
      
      
      
