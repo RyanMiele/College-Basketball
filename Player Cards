@@ -532,35 +532,7 @@
   
   
   
-  library(paletteer)
-  
-         charts <- (usg + game_score) / 
-                  (rim + efg) / 
-               (three + three_m_perc )+
-    plot_layout(nrow  =3)+
-      plot_annotation(title = "5 Game Rolling Averages",
-                      theme = theme(plot.title = element_text(family = "Times",size = 20, hjust = 0.5),
-                            plot.subtitle = element_text(family = "Times",size = 12, hjust = 0.5)))
-  
-    
-    ((headshot + kpi) / table_png/shooting ) | charts+ plot_layout(widths = c(2,1))
-      plot_layout(ncol = 2,widths = c(2,1))+
-      plot_annotation(title = "Jack Forrest",
-                      subtitle = "UConn  |  Combo G  |  6-4  |  Senior",
-                      theme = theme(plot.title = element_text(family = "Times",size = 30, face = "bold" ,hjust = 0.5),
-                                    plot.subtitle = element_text(family = "Times",size = 18, hjust = 0.5)))
-    
-         
-     left<- 
-       (kpi) + (table_png) + (shooting) +plot_layout(ncol = 1,heights = c(1,2,1))+
-       plot_annotation(title = paste0(player_season$player),
-                       subtitle = "Bucknell  |  Wing G  |  6-5  |  Senior",
-                       theme = theme(plot.title = element_text(family = "Times",size = 30, face = "bold", hjust = 0.5),
-                                     plot.subtitle = element_text(family = "Times",size = 18, hjust = 0.5)))
-     
-     
-     
-     
+
      
      
      
