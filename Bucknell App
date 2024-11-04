@@ -1,0 +1,142 @@
+
+buck_off_actions <- read.csv("Bucknell_Offensive_Actions.csv", header = TRUE, sep = ",")
+
+
+buck_off_actions$FT.Points[is.na(buck_off_actions$FT.Points)] <- 0
+
+
+
+
+actions_table <- buck_off_actions%>%
+  mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                            Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                            Result == "Fouled" ~ FT.Points))%>%
+  mutate(across(everything(), ~replace_na(.x, 0)))%>%
+  group_by(Action.Type) %>%
+  mutate(action_count = n(),
+         action_pps = sum(points)/action_count) %>%
+  ungroup()%>%
+  mutate(total_actions = n(),
+         action_freq = action_count/total_actions)%>%
+  reframe(Action.Type,action_count,action_freq,action_pps)%>%
+  distinct(Action.Type,.keep_all = TRUE)%>%
+  arrange(desc(action_freq))
+  
+
+
+gt(actions_table)%>%
+  gt_theme_538()%>%
+  #gtExtras::gt_img_rows(athlete_headshot_href)%>%
+  cols_label(Action.Type = "Play Type",
+             action_count = "Count",
+             action_freq = "Frequency",
+             action_pps = "Points Per Shot")%>%
+  # data_color(columns = action_pps ,
+  #            target_columns = action_pps ,
+  #            palette = c("red", "indianred1","white", "steelblue1","blue"),
+  #            domain = c(0,3))%>%
+  fmt_percent(columns = c(action_freq),decimals = 1)%>%
+  fmt_number(columns = c(action_pps),decimals = 2)%>%
+  #gt_add_divider(PLAYER_HEIGHT, color = 'black', include_labels = FALSE) %>%
+  gt::cols_align(columns = c(everything()),"center")%>%
+  tab_header(title = "Bucknell Play Types",subtitle = "10/26 @St. Joe's")%>%
+  #tab_source_note(source_note = "By Bucknell Analytics | Data: NBAr")%>%
+  opt_align_table_header("center")
+
+
+
+
+contested_table <- buck_off_actions%>%
+  mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                            Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                            Result == "Fouled" ~ FT.Points))%>%
+  mutate(across(everything(), ~replace_na(.x, 0)))%>%
+  group_by(Contested) %>%
+  mutate(count = n(),
+         pps = sum(points)/count) %>%
+  ungroup()%>%
+  mutate(total_attempts = n(),
+         freq = count/total_attempts)%>%
+  reframe(Contested,count,freq,pps)%>%
+  distinct(Contested,.keep_all = TRUE)%>%
+  arrange(desc(freq))
+
+
+
+## Player
+
+### Play Types
+
+
+actions_player_table <- buck_off_actions%>%
+  mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                            Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                            Result == "Fouled" ~ FT.Points))%>%
+  mutate(across(everything(), ~replace_na(.x, 0)))%>%
+  group_by(Player,Action.Type) %>%
+  mutate(action_count = n(),
+         action_pps = sum(points)/action_count) %>%
+  ungroup()%>%
+  group_by(Player)%>%
+  mutate(total_actions = n(),
+         action_freq = action_count/total_actions)%>%
+  filter(Player == "Bascoe")%>%
+  ungroup()%>%
+  reframe(Action.Type,action_count,action_freq,action_pps)%>%
+  distinct(Action.Type,.keep_all = TRUE)%>%
+  arrange(desc(action_freq))
+
+
+
+## Contested Shots
+
+contested_player_table <- buck_off_actions%>%
+  mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                            Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                            Result == "Fouled" ~ FT.Points))%>%
+  mutate(across(everything(), ~replace_na(.x, 0)))%>%
+  group_by(Player,Contested) %>%
+  mutate(count = n(),
+         pps = sum(points)/count) %>%
+  ungroup()%>%
+  group_by(Player)%>%
+  mutate(total_attempts = n(),
+         freq = count/total_attempts)%>%
+  filter(Player == "Bascoe")%>%
+  ungroup()%>%
+  reframe(Contested,count,freq,pps)%>%
+  distinct(Contested,.keep_all = TRUE)%>%
+  arrange(desc(freq))
+
+
+
+
+## Pullup vs C&S 3s
+
+pullup_player_table <- buck_off_actions%>%
+  filter(Location == "3P" & Result != "Fouled" &
+           (Shot.Type == "Pull Up" | Shot.Type == "Catch and Shoot" ))%>%
+  #mutate(across(everything(), ~replace_na(.x, 0)))%>%
+  group_by(Player,Shot.Type) %>%
+  mutate(count = n(),
+         fg_pct = mean(Result == "Make")) %>%
+  ungroup()%>%
+  group_by(Player)%>%
+  mutate(total_attempts = n(),
+         freq = count/total_attempts)%>%
+  filter(Player == "Bascoe")%>%
+  ungroup()%>%
+  reframe(Shot.Type,count,freq,fg_pct)%>%
+  distinct(Shot.Type,.keep_all = TRUE)%>%
+  arrange(desc(freq))
+
+
+
+
+
+
+
+
+
+
+
