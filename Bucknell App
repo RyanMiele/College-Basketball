@@ -1,4 +1,12 @@
 
+
+
+
+
+
+
+
+
 buck_off_actions <- read.csv("Bucknell_Offensive_Actions.csv", header = TRUE, sep = ",")
 
 
@@ -8,6 +16,7 @@ buck_off_actions$FT.Points[is.na(buck_off_actions$FT.Points)] <- 0
 
 
 actions_table <- buck_off_actions%>%
+  #filter(Opponent == "Richmond")%>%
   mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
                             Location == "3P" & Result == "Make" ~ 3 + FT.Points,
                             Result == "Fouled" ~ FT.Points))%>%
@@ -21,117 +30,916 @@ actions_table <- buck_off_actions%>%
   reframe(Action.Type,action_count,action_freq,action_pps)%>%
   distinct(Action.Type,.keep_all = TRUE)%>%
   arrange(desc(action_freq))
+
+
+
+
+
+
+
+
+
+contested_freq_table <- buck_off_actions%>%
+  mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                            Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                            Result == "Fouled" ~ FT.Points),
+         zone = case_when(Location == "3P" ~ "Three",
+                          Location == "2P" & (Shot.Type == "Lay Up" | Shot.Type == "Dunk") ~ "Rim",
+                          TRUE ~ "Mid-Range"))%>%
+  filter(Opponent == "Richmond")%>%
+  mutate(across(everything(), ~replace_na(.x, 0)))%>%
+  group_by(Contested,zone) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  ungroup() %>%
+  mutate(total_count = sum(count)) %>%   # Calculate the total number of shots
+  mutate(percentage = (count / total_count)) %>%
+  select(-count, -total_count) %>%    
+  pivot_wider(names_from = Contested, values_from = percentage, values_fill = 0)%>%
+  rename(`Tight_Contest` = `Tight Contest`,
+         `Light_Contest` = `Light Contest`,
+         `Wide_Open` = `Wide Open`)%>%
+  reframe(zone,Tight_Contest, Light_Contest, Wide_Open)%>%
+  mutate(zone = factor(zone, levels = c("Rim", "Mid-Range", "Three"))) %>%
+  arrange(zone)
+
+
+
+
+contested_pps_table <- buck_off_actions%>%
+  mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                            Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                            Result == "Fouled" ~ FT.Points),
+         zone = case_when(Location == "3P" ~ "Three",
+                          Location == "2P" & (Shot.Type == "Lay Up" | Shot.Type == "Dunk") ~ "Rim",
+                          TRUE ~ "Mid-Range"))%>%
+  filter(Opponent == "Richmond")%>%
+  mutate(across(everything(), ~replace_na(.x, 0)))%>%
+  group_by(Contested,zone) %>%
+  summarise(points_per_shot = mean(points), .groups = 'drop') %>%
+  pivot_wider(names_from = Contested, values_from = points_per_shot, values_fill = 0)%>%
+  rename(`Tight_Contest` = `Tight Contest`,
+         `Light_Contest` = `Light Contest`,
+         `Wide_Open` = `Wide Open`)%>%
+  reframe(zone,Tight_Contest, Light_Contest, Wide_Open)%>%
+  mutate(zone = factor(zone, levels = c("Rim", "Mid-Range", "Three"))) %>%
+  arrange(zone)
+
+
+
+
+
+
+
+all_games_total <- buck_off_actions %>%
+  #group_by(pitcher_1,pitch_name) %>%
+  mutate(Opponent = "All")%>%
+  #ungroup()%>%
+  bind_rows(buck_off_actions)
+
+
+
+all_games_total2 <- buck_off_actions %>%
+  #group_by(pitcher_1,pitch_name) %>%
+  mutate(Opponent = "All",
+         Player = "All")%>%
+  #ungroup()%>%
+  bind_rows(all_games_total)
+
+
+all_games_total3 <- buck_off_actions %>%
+  #group_by(pitcher_1,pitch_name) %>%
+  mutate(Player = "All")%>%
+  #ungroup()%>%
+  bind_rows(all_games_total2)
+
+
+
+games <- unique(all_games_total$Opponent)
+playtypes <- unique(all_games_total$Action.Type)
+player_name <- unique(buck_off_actions$Player)
+player_name_all <- unique(all_games_total3$Player)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ui <- fluidPage(
+  theme = shinytheme("sandstone"),
+  
+  
+  
+  
+  
+  titlePanel(h1("Bucknell Basketball 2024-25",align = "center")),
+  
+
+  sidebarPanel(width = 2,
+               selectInput(inputId = "game_select", label = "Select a Game",
+                                  c(unique(games)))),
+  
+  mainPanel( 
+    navbarPage("Bucknell Analytics",
+               tabPanel("Team Play Types",
+                        fluidRow(
+                          column(12,
+                                 tableOutput("team_play_types")),
+                          column(6, 
+                                 tableOutput("team_contested_shots_freq")),
+                          column(6, align = "center",
+                                 tableOutput("team_contested_shots_pps")),
+                        )),
+               
+               tabPanel("Player Play Types",
+                        fluidRow(
+                          column(width = 12, align = "center",
+                                 selectizeInput(inputId = "playerchoose2", label = "Player",
+                                                c(sort(unique(as.character(player_name)))),
+                                                selected = "Bascoe")),
+                          # column(4, align = "center",
+                          #        plotOutput("player_head_shot",height = 100)),
+                          column(12, align = "center",
+                                 tableOutput("player_play_types")),
+                          
+                        )),
+               tabPanel("Filtered Play Types",
+                        fluidRow(
+                          column(width = 6, align = "center",
+                                 selectizeInput(inputId = "playtypechoose1", label = "Play Type",
+                                                c(sort(unique(as.character(playtypes)))),
+                                                selected = "PnR Ball Handler")),
+                          column(width = 6, align = "center",
+                                 selectizeInput(inputId = "playerchoose1", label = "Player",
+                                                c(sort(unique(as.character(player_name_all)))),
+                                                selected = "All")),
+                          column(6,
+                                 tableOutput("team_play_types2")),
+                          column(6, align = "center",
+                                 tableOutput("team_play_types_contest")),
+                          column(6, align = "center",
+                                 plotOutput("play_type_freq_time")),
+                          column(6, align = "center",
+                                 plotOutput("play_type_pps_time")),
+                          
+                        ))
+               ),
+    
+               # tabPanel("Player Contested Shots",
+               #          fluidRow(
+               #             column(6, align = "center",
+               #                    tableOutput("player_contested_shots_freq")),
+               #             column(6, align = "center",
+               #                    tableOutput("player_contested_shots_pps")),
+               #                   
+               #            )),
+               ))
+
+
+server <-  function(input, output) {
+  
+  
+  output$team_play_types <- render_gt({
+    
+    
+    
+    actions_table <- all_games_total%>%
+      #filter(Opponent == "Richmond")%>%
+      filter(Opponent == input$game_select)%>%
+      mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                                Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                                Result == "Fouled" ~ FT.Points))%>%
+      mutate(across(everything(), ~replace_na(.x, 0)))%>%
+      group_by(Action.Type) %>%
+      mutate(action_count = n(),
+             action_pps = sum(points)/action_count) %>%
+      ungroup()%>%
+      mutate(total_actions = n(),
+             action_freq = action_count/total_actions)%>%
+      reframe(Opponent,Action.Type,action_count,action_freq,action_pps)%>%
+      distinct(Action.Type,.keep_all = TRUE)%>%
+      arrange(desc(action_freq))
+    
+    
+    ## To Compare to Average
+    
+    actions_table_full <- all_games_total%>%
+      filter(Opponent == "All")%>%
+      mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                                Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                                Result == "Fouled" ~ FT.Points))%>%
+      mutate(across(everything(), ~replace_na(.x, 0)))%>%
+      group_by(Action.Type) %>%
+      mutate(action_count = n(),
+             action_pps_full = sum(points)/action_count) %>%
+      ungroup()%>%
+      mutate(total_actions = n(),
+             action_freq_full = action_count/total_actions)%>%
+      reframe(Action.Type,action_freq_full,action_pps_full)%>%
+      distinct(Action.Type,.keep_all = TRUE)
+    
+    
+    actions_table_complete <- left_join(actions_table,actions_table_full, by = c("Action.Type"))
+    
+    actions_table_complete <- actions_table_complete%>%
+      mutate(freq_dif = action_freq - action_freq_full,
+             pps_dif = action_pps - action_pps_full)%>%
+      reframe(Action.Type,action_count,action_freq,freq_dif,action_pps,pps_dif)
+    
+    
+    
+    if (input$game_select == "All") {
+      #if (actions_table$Opponent == "All") {
+      # Table when "All" is selected
+      df_filtered <- subset( actions_table_complete, select = -c(freq_dif, pps_dif))
+      
+      
+      
+      gt(df_filtered )%>%
+        gt_theme_538()%>%
+        #gtExtras::gt_img_rows(athlete_headshot_href)%>%
+        cols_label(Action.Type = "Play Type",
+                   action_count = "Count",
+                   action_freq = "Frequency",
+                   action_pps = "Points Per Shot",)%>%
+        data_color(columns = action_pps ,
+                   target_columns = action_pps ,
+                   palette = c("red", "indianred1","white", "steelblue1","blue"),
+                   domain = c(.4,1.8))%>%
+        fmt_percent(columns = c(action_freq),decimals = 1)%>%
+        fmt_number(columns = c(action_pps),decimals = 2)%>%
+        gt::cols_align(columns = c(everything()),"center")%>%
+        #tab_header(title = "Bucknell Play Types",subtitle = "11/16 vs Richmond")%>%
+        tab_header(title = "Bucknell Play Types")%>%
+        #tab_source_note(source_note = "By Bucknell Analytics | Data: NBAr")%>%
+        opt_align_table_header("center")
+      
+      
+      
+      
+    } else {
+      # # Table when a specific game is selected
+      # df_filtered <- df[df$Game == input$game, ]
+      # df_filtered %>% gt()
+      
+      
+      gt(actions_table_complete)%>%
+        gt_theme_538()%>%
+        #gtExtras::gt_img_rows(athlete_headshot_href)%>%
+        cols_label(Action.Type = "Play Type",
+                   action_count = "Count",
+                   action_freq = "Frequency",
+                   freq_dif = "Dif from Avg Freq",
+                   action_pps = "Points Per Shot",
+                   pps_dif = "Dif From Avg PPS")%>%
+        data_color(columns = freq_dif ,
+                   target_columns = freq_dif ,
+                   palette = c("red", "indianred1","white", "steelblue1","blue"),
+                   domain = c(-.2,.2))%>%
+        data_color(columns = pps_dif ,
+                   target_columns = pps_dif ,
+                   palette = c("red", "indianred1","white", "steelblue1","blue"),
+                   domain = c(-2,2))%>%
+        fmt_percent(columns = c(action_freq,freq_dif),decimals = 1)%>%
+        fmt_number(columns = c(action_pps,pps_dif),decimals = 2)%>%
+        gt_add_divider(freq_dif, color = 'black', include_labels = TRUE) %>%
+        gt_add_divider(action_count, color = 'black', include_labels = TRUE) %>%
+        gt::cols_align(columns = c(everything()),"center")%>%
+        tab_header(title = "Bucknell Play Types")%>%
+        opt_align_table_header("center")
+      
+      
+      
+      
+    }
+    
+    
+    
+    
+  })
+  
+  
+  
+  
+  output$team_play_types2 <- render_gt({
+    
+    
+
+    actions_table2 <- all_games_total3%>%
+      filter(Opponent == input$game_select &
+               Player == input$playerchoose1)%>%
+      mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                                Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                                Result == "Fouled" ~ FT.Points))%>%
+      mutate(across(everything(), ~replace_na(.x, 0)))%>%
+      group_by(Action.Type) %>%
+      mutate(action_count = n(),
+             action_pps = sum(points)/action_count) %>%
+      ungroup()%>%
+      mutate(total_actions = n(),
+             action_freq = action_count/total_actions)%>%
+      filter(Action.Type == input$playtypechoose1 )%>%
+      reframe(Action.Type,action_count,action_freq,action_pps)%>%
+      distinct(Action.Type,.keep_all = TRUE)%>%
+      arrange(desc(action_freq))
+
+    
+    gt(actions_table2)%>%
+      gt_theme_538()%>%
+      cols_label(Action.Type = "Play Type",
+                 action_count = "Count",
+                 action_freq = "Frequency",
+                 action_pps = "Points Per Shot")%>%
+      fmt_percent(columns = c(action_freq),decimals = 1)%>%
+      fmt_number(columns = c(action_pps),decimals = 2)%>%
+      gt::cols_align(columns = c(everything()),"center")%>%
+      tab_header(title = "Play Type Overall Stats")%>%
+      opt_align_table_header("center")
+    
+    
+    
+    
+    
+  })
+  
+  
+  output$team_play_types_contest <- render_gt({
+  
+  
+  
+    
+    
+    
+    
+  contested_play_table <- all_games_total3%>%
+    filter(Opponent == input$game_select &
+             Player == input$playerchoose1)%>%
+    mutate(across(everything(), ~replace_na(.x, 0)))%>%
+    mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                              Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                              Result == "Fouled" ~ FT.Points))%>%
+    mutate(across(everything(), ~replace_na(.x, 0)))%>%
+    group_by(Action.Type,Contested) %>%
+    mutate(count = n(),
+           pps = sum(points)/count) %>%
+    ungroup()%>%
+    group_by(Action.Type)%>%
+    mutate(total_attempts = n(),
+           freq = count/total_attempts)%>%
+    filter(Action.Type == input$playtypechoose1 )%>%
+    reframe(Action.Type,Contested,count,freq,pps)%>%
+    complete(Action.Type, Contested, fill = list(freq = 0)) %>%
+    arrange(Action.Type, Contested)
+  
+  
+  
+  contested_play_table <- contested_play_table[!duplicated(contested_play_table), ]
+  
+  
+  contested_play_table <- contested_play_table%>%
+    mutate(Action.Type = if_else(Action.Type == lag(Action.Type), "", Action.Type, missing = Action.Type))
+  # 
+  # distinct(Action.Type,.keep_all = TRUE)%>%
+  #   #distinct(Contested,.keep_all = TRUE)%>%
+  #   arrange(desc(freq))
+  # 
+  
+  
+  
+  
+  gt(contested_play_table)%>%
+    gt_theme_538()%>%
+    cols_label(
+      Action.Type = "Play Type",
+      Contested = "Type of Contest",
+      count = "# of Shots",
+      freq = "Percentage of Total Play Types",
+      pps = "Points Per Shot")%>%
+    fmt_percent(columns = c(freq),decimals = 1)%>%
+    fmt_number(columns = c(pps),decimals = 2)%>%
+    gt::cols_align(columns = c(everything()),"center")%>%
+    tab_header(title = "Shot Contest Type")%>%
+    opt_align_table_header("center")
+  
+  
+  
+  
+  
+  
+  })
   
 
 
-gt(actions_table)%>%
-  gt_theme_538()%>%
-  #gtExtras::gt_img_rows(athlete_headshot_href)%>%
-  cols_label(Action.Type = "Play Type",
-             action_count = "Count",
-             action_freq = "Frequency",
-             action_pps = "Points Per Shot")%>%
-  # data_color(columns = action_pps ,
-  #            target_columns = action_pps ,
-  #            palette = c("red", "indianred1","white", "steelblue1","blue"),
-  #            domain = c(0,3))%>%
-  fmt_percent(columns = c(action_freq),decimals = 1)%>%
-  fmt_number(columns = c(action_pps),decimals = 2)%>%
-  #gt_add_divider(PLAYER_HEIGHT, color = 'black', include_labels = FALSE) %>%
-  gt::cols_align(columns = c(everything()),"center")%>%
-  tab_header(title = "Bucknell Play Types",subtitle = "10/26 @St. Joe's")%>%
-  #tab_source_note(source_note = "By Bucknell Analytics | Data: NBAr")%>%
-  opt_align_table_header("center")
+
+  output$play_type_freq_time <- renderPlot({
+
+
+    play_type_freq_over_time <- all_games_total3%>%
+      filter(Player == input$playerchoose1)%>%
+      mutate(across(everything(), ~replace_na(.x, 0)))%>%
+      mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                                Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                                Result == "Fouled" ~ FT.Points))%>%
+      mutate(across(everything(), ~replace_na(.x, 0)))%>%
+      group_by(Date,Action.Type) %>%
+      mutate(count = n(),
+             pps = sum(points)/count) %>%
+      ungroup()%>%
+      group_by(Action.Type)%>%
+      mutate(total_attempts = n(),
+             freq = count/total_attempts)%>%
+      #filter(Action.Type == "Cut")%>%
+      filter(Action.Type == input$playtypechoose1 )%>%
+      ungroup()%>%
+      mutate(avg_freq = mean(freq))%>%
+      reframe(Date,Action.Type,Contested,count,freq,pps,avg_freq)
+
+
+    play_type_freq_over_time <- play_type_freq_over_time[!duplicated(play_type_freq_over_time), ]
+
+
+    
+    play_type_freq_over_time$Date <- as.Date(play_type_freq_over_time$Date, format = "%m/%d/%y")
+
+
+
+    ggplot(data = play_type_freq_over_time)+
+      geom_line(aes(x=Date,y=freq),size = 1.5,color = "steelblue1")+
+      geom_point(aes(x=Date,y=freq),size = 4)+
+      #stat_smooth(aes(x=Date,y=freq),se = FALSE,color = "steelblue1")+
+      scale_y_continuous(n.breaks = 6,labels = percent, limits = c(0,.6))+
+      #geom_hline(yintercept = (actions_table2$action_freq),linetype = "dashed", color = "black",size=1)+
+      theme_minimal()+
+      # geom_text(data = play_type_freq_over_time, aes(x = as.Date(factor(play_type_freq_over_time,
+      #                                                             levels=c("2024-10-26"))) - .39,
+      #                                       y = -.095, label = "Season Avg", size = .1)) +
+      #scale_x_continuous(breaks = c(48, 40, ,.8),labels = percent)+
+      # scale_x_reverse(labels = c("Start",
+      #                            "2nd Q",
+      #                            "Half Time",
+      #                            "4th Q",
+      #                            "End of Reg"),
+      #                 breaks = c(48, 36, 24, 12, 0))+
+      labs(y = "",
+           x = "",
+           title = "Frequency Over Time")+
+      theme(plot.title = element_text(size = 22, face = "bold",hjust = .5))+
+      theme(plot.subtitle = element_text(size = 19,hjust = .5),
+            legend.text = element_text(size = 20),
+            legend.title = element_blank(),
+            axis.text.x = element_text(size = 18),
+            axis.text.y = element_text(size = 18),
+            axis.title.y = element_text(size = 18))
 
 
 
 
-contested_table <- buck_off_actions%>%
-  mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
-                            Location == "3P" & Result == "Make" ~ 3 + FT.Points,
-                            Result == "Fouled" ~ FT.Points))%>%
-  mutate(across(everything(), ~replace_na(.x, 0)))%>%
-  group_by(Contested) %>%
-  mutate(count = n(),
-         pps = sum(points)/count) %>%
-  ungroup()%>%
-  mutate(total_attempts = n(),
-         freq = count/total_attempts)%>%
-  reframe(Contested,count,freq,pps)%>%
-  distinct(Contested,.keep_all = TRUE)%>%
-  arrange(desc(freq))
-
-
-
-## Player
-
-### Play Types
-
-
-actions_player_table <- buck_off_actions%>%
-  mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
-                            Location == "3P" & Result == "Make" ~ 3 + FT.Points,
-                            Result == "Fouled" ~ FT.Points))%>%
-  mutate(across(everything(), ~replace_na(.x, 0)))%>%
-  group_by(Player,Action.Type) %>%
-  mutate(action_count = n(),
-         action_pps = sum(points)/action_count) %>%
-  ungroup()%>%
-  group_by(Player)%>%
-  mutate(total_actions = n(),
-         action_freq = action_count/total_actions)%>%
-  filter(Player == "Bascoe")%>%
-  ungroup()%>%
-  reframe(Action.Type,action_count,action_freq,action_pps)%>%
-  distinct(Action.Type,.keep_all = TRUE)%>%
-  arrange(desc(action_freq))
-
-
-
-## Contested Shots
-
-contested_player_table <- buck_off_actions%>%
-  mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
-                            Location == "3P" & Result == "Make" ~ 3 + FT.Points,
-                            Result == "Fouled" ~ FT.Points))%>%
-  mutate(across(everything(), ~replace_na(.x, 0)))%>%
-  group_by(Player,Contested) %>%
-  mutate(count = n(),
-         pps = sum(points)/count) %>%
-  ungroup()%>%
-  group_by(Player)%>%
-  mutate(total_attempts = n(),
-         freq = count/total_attempts)%>%
-  filter(Player == "Bascoe")%>%
-  ungroup()%>%
-  reframe(Contested,count,freq,pps)%>%
-  distinct(Contested,.keep_all = TRUE)%>%
-  arrange(desc(freq))
+  })
 
 
 
 
-## Pullup vs C&S 3s
+  
+  
+  output$play_type_pps_time <- renderPlot({
+    
+    
+    play_type_pps_over_time <- all_games_total3%>%
+      filter(Player == input$playerchoose1)%>%
+      mutate(across(everything(), ~replace_na(.x, 0)))%>%
+      mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                                Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                                Result == "Fouled" ~ FT.Points))%>%
+      mutate(across(everything(), ~replace_na(.x, 0)))%>%
+      group_by(Date,Action.Type) %>%
+      mutate(count = n(),
+             pps = sum(points)/count) %>%
+      ungroup()%>%
+      group_by(Action.Type)%>%
+      mutate(total_attempts = n(),
+             freq = count/total_attempts)%>%
+      # filter(Action.Type == "Isolation")%>%
+      filter(Action.Type == input$playtypechoose1 )%>%
+      ungroup()%>%
+      mutate(avg_freq = mean(freq))%>%
+      reframe(Date,Action.Type,Contested,count,freq,pps,avg_freq)
+    
+    
+    play_type_pps_over_time <- play_type_pps_over_time[!duplicated(play_type_pps_over_time), ]
+    
+    
+    
+    play_type_pps_over_time$Date <- as.Date(play_type_pps_over_time$Date, format = "%m/%d/%y")
+    
+    
+    
+    ggplot(data = play_type_pps_over_time)+
+      geom_line(aes(x=Date,y=pps),size = 1.5,color = "steelblue1")+
+      geom_point(aes(x=Date,y=pps),size = 4)+
+      #stat_smooth(aes(x=Date,y=pps),se = FALSE,color = "steelblue1")+
+      scale_y_continuous(n.breaks = 6, limits = c(0,2))+
+      #geom_hline(yintercept = (actions_table2$action_freq),linetype = "dashed", color = "black",size=1)+
+      theme_minimal()+
+      # geom_text(data = play_type_freq_over_time, aes(x = as.Date(factor(play_type_freq_over_time,
+      #                                                             levels=c("2024-10-26"))) - .39,
+      #                                       y = -.095, label = "Season Avg", size = .1)) +
+      #scale_x_continuous(breaks = c(48, 40, ,.8),labels = percent)+
+      # scale_x_reverse(labels = c("Start",
+      #                            "2nd Q",
+      #                            "Half Time",
+      #                            "4th Q",
+      #                            "End of Reg"),
+      #                 breaks = c(48, 36, 24, 12, 0))+
+      labs(y = "",
+           x = "",
+           title = "Efficiency Over Time")+
+      theme(plot.title = element_text(size = 22, face = "bold",hjust = .5))+
+      theme(plot.subtitle = element_text(size = 19,hjust = .5),
+            legend.text = element_text(size = 20),
+            legend.title = element_blank(),
+            axis.text.x = element_text(size = 18),
+            axis.text.y = element_text(size = 18),
+            axis.title.y = element_text(size = 18))
+    
+    
+    
+    
+  })
+  
+  
+  
+  
+  
+  
+  output$team_contested_shots_freq <- render_gt({
+    
+    
+    
+    
+    
+    contested_freq_table <- all_games_total%>%
+      filter(Opponent == input$game_select)%>%
+      #filter(Opponent == "Richmond")%>%
+      mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                                Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                                Result == "Fouled" ~ FT.Points),
+             zone = case_when(Location == "3P" ~ "Three",
+                              Location == "2P" & (Shot.Type == "Lay Up" | Shot.Type == "Dunk") ~ "Rim",
+                              TRUE ~ "Mid-Range"))%>%
+      #filter(Opponent == "Richmond")%>%
+      mutate(across(everything(), ~replace_na(.x, 0)))%>%
+      group_by(Contested,zone) %>%
+      summarise(count = n(), .groups = 'drop') %>%
+      ungroup() %>%
+      mutate(total_count = sum(count)) %>%   # Calculate the total number of shots
+      mutate(percentage = (count / total_count)) %>%
+      select(-count, -total_count) %>%    
+      pivot_wider(names_from = Contested, values_from = percentage, values_fill = 0)%>%
+      rename(`Tight_Contest` = `Tight Contest`,
+             `Light_Contest` = `Light Contest`,
+             `Wide_Open` = `Wide Open`)%>%
+      reframe(zone,Tight_Contest, Light_Contest, Wide_Open)%>%
+      mutate(zone = factor(zone, levels = c("Rim", "Mid-Range", "Three"))) %>%
+      arrange(zone)
+    
+    
+    
+    
+    ## To Compare to Average
+    
+    contested_freq_table_full <- all_games_total%>%
+      filter(Opponent == "All")%>%
+      mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                                Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                                Result == "Fouled" ~ FT.Points),
+             zone = case_when(Location == "3P" ~ "Three",
+                              Location == "2P" & (Shot.Type == "Lay Up" | Shot.Type == "Dunk") ~ "Rim",
+                              TRUE ~ "Mid-Range"))%>%
+      #filter(Opponent == "Richmond")%>%
+      mutate(across(everything(), ~replace_na(.x, 0)))%>%
+      group_by(Contested,zone) %>%
+      summarise(count = n(), .groups = 'drop') %>%
+      ungroup() %>%
+      mutate(total_count = sum(count)) %>%   # Calculate the total number of shots
+      mutate(percentage = (count / total_count)) %>%
+      select(-count, -total_count) %>%    
+      pivot_wider(names_from = Contested, values_from = percentage, values_fill = 0)%>%
+      rename(`Tight_Contest_full` = `Tight Contest`,
+             `Light_Contest_full` = `Light Contest`,
+             `Wide_Open_full` = `Wide Open`)%>%
+      reframe(zone,Tight_Contest_full, Light_Contest_full, Wide_Open_full)%>%
+      mutate(zone = factor(zone, levels = c("Rim", "Mid-Range", "Three"))) %>%
+      arrange(zone)
+    
+    
+    
+    
+    
+    contested_freq_table_complete <- left_join(contested_freq_table,contested_freq_table_full, by = c("zone"))
+    
+    
+    contested_freq_table_complete <- contested_freq_table_complete%>%
+      mutate(Tight_Contest_dif = Tight_Contest - Tight_Contest_full,
+             Light_Contest_dif = Light_Contest - Light_Contest_full,
+             Wide_Open_dif = Wide_Open - Wide_Open_full)%>%
+      reframe(zone,Tight_Contest, Tight_Contest_dif,Light_Contest, Light_Contest_dif,Wide_Open,Wide_Open_dif)
+    
+    
+    
+    
+    
+    
+    if (input$game_select == "All") {
+      #if (actions_table$Opponent == "All") {
+      # Table when "All" is selected
+      df_filtered <- subset( contested_freq_table_complete, select = -c(Tight_Contest_dif, 
+                                                                        Light_Contest_dif,Wide_Open_dif))
+      
+      
+      
+      
+      
+      gt(contested_freq_table)%>%
+        gt_theme_538()%>%
+        cols_label(zone = "Location",
+                   Tight_Contest = "Tight Contest",
+                   Light_Contest = "Light Contest",
+                   Wide_Open = "Wide Open")%>%
+        fmt_percent(columns = c(Tight_Contest, Light_Contest, Wide_Open),decimals = 1)%>%
+        gt::cols_align(columns = c(everything()),"center")%>%
+        tab_header(title = "Offensive Contested Shot Attempts")%>%
+        opt_align_table_header("center")
+      
+      
+      
+    } else {
+      # # Table when a specific game is selected
+      # df_filtered <- df[df$Game == input$game, ]
+      # df_filtered %>% gt()
+      
+      
+      
+      gt(contested_freq_table_complete)%>%
+        gt_theme_538()%>%
+        cols_label(zone = "Location",
+                   Tight_Contest = "Tight Contest",
+                   Tight_Contest_dif = "Dif From Avg",
+                   Light_Contest = "Light Contest",
+                   Light_Contest_dif = "Dif From Avg",
+                   Wide_Open = "Wide Open",
+                   Wide_Open_dif = "Dif From Avg")%>%
+        data_color(columns = Tight_Contest_dif ,
+                   target_columns = Tight_Contest_dif ,
+                   palette = c("red", "indianred1","white", "steelblue1","blue"),
+                   domain = c(-.2,.2))%>%
+        data_color(columns = Light_Contest_dif ,
+                   target_columns =Light_Contest_dif ,
+                   palette = c("red", "indianred1","white", "steelblue1","blue"),
+                   domain = c(-.2,.2))%>%
+        data_color(columns = Wide_Open_dif,
+                   target_columns = Wide_Open_dif ,
+                   palette = c("red", "indianred1","white", "steelblue1","blue"),
+                   domain = c(-.2,.2))%>%
+        fmt_percent(columns = c(Tight_Contest, Light_Contest, Wide_Open,
+                                Tight_Contest_dif,Light_Contest_dif,Wide_Open_dif),decimals = 1)%>%
+        gt_add_divider(c(Tight_Contest_dif,Light_Contest_dif), color = 'black', include_labels = TRUE) %>%
+        gt::cols_align(columns = c(everything()),"center")%>%
+        tab_header(title = "Offensive Contested Shot Attempts")%>%
+        opt_align_table_header("center")
+      
+      
+      
+      
+    }
+    
+    
+    
+    
+    
+    
+  })
+  
+  
+  
+  output$team_contested_shots_pps <- render_gt({
+    
+    
+    
+    
+    contested_pps_table <- all_games_total%>%
+      filter(Opponent == input$game_select)%>%
+      #filter(Opponent == "Richmond")%>%
+      mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                                Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                                Result == "Fouled" ~ FT.Points),
+             zone = case_when(Location == "3P" ~ "Three",
+                              Location == "2P" & (Shot.Type == "Lay Up" | Shot.Type == "Dunk") ~ "Rim",
+                              TRUE ~ "Mid-Range"))%>%
+      mutate(across(everything(), ~replace_na(.x, 0)))%>%
+      group_by(Contested,zone) %>%
+      summarise(points_per_shot = mean(points), .groups = 'drop') %>%
+      pivot_wider(names_from = Contested, values_from = points_per_shot, values_fill = 0)%>%
+      rename(`Tight_Contest` = `Tight Contest`,
+             `Light_Contest` = `Light Contest`,
+             `Wide_Open` = `Wide Open`)%>%
+      reframe(zone,Tight_Contest, Light_Contest, Wide_Open)%>%
+      mutate(zone = factor(zone, levels = c("Rim", "Mid-Range", "Three"))) %>%
+      arrange(zone)
+    
+    
+    
+    ## Compare to Average
+    
+    contested_pps_table_full <- all_games_total%>%
+      filter(Opponent == "All")%>%
+      mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                                Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                                Result == "Fouled" ~ FT.Points),
+             zone = case_when(Location == "3P" ~ "Three",
+                              Location == "2P" & (Shot.Type == "Lay Up" | Shot.Type == "Dunk") ~ "Rim",
+                              TRUE ~ "Mid-Range"))%>%
+      mutate(across(everything(), ~replace_na(.x, 0)))%>%
+      group_by(Contested,zone) %>%
+      summarise(points_per_shot = mean(points), .groups = 'drop') %>%
+      pivot_wider(names_from = Contested, values_from = points_per_shot, values_fill = 0)%>%
+      rename(`Tight_Contest_full` = `Tight Contest`,
+             `Light_Contest_full` = `Light Contest`,
+             `Wide_Open_full` = `Wide Open`)%>%
+      reframe(zone,Tight_Contest_full, Light_Contest_full, Wide_Open_full)%>%
+      mutate(zone = factor(zone, levels = c("Rim", "Mid-Range", "Three"))) %>%
+      arrange(zone)
+    
+    
+    
+    
+    
+    contested_pps_table_complete <- left_join(contested_pps_table,contested_pps_table_full, by = c("zone"))
+    
+    
+    contested_pps_table_complete <- contested_pps_table_complete%>%
+      mutate(Tight_Contest_dif = Tight_Contest - Tight_Contest_full,
+             Light_Contest_dif = Light_Contest - Light_Contest_full,
+             Wide_Open_dif = Wide_Open - Wide_Open_full)%>%
+      reframe(zone,Tight_Contest, Tight_Contest_dif,Light_Contest, Light_Contest_dif,Wide_Open,Wide_Open_dif)
+    
+    
+    
+    
+    
+    
+    if (input$game_select == "All") {
+      #if (actions_table$Opponent == "All") {
+      # Table when "All" is selected
+      df_filtered <- subset( contested_pps_table_complete, select = -c(Tight_Contest_dif, 
+                                                                        Light_Contest_dif,Wide_Open_dif))
+      
+      
+      
+      
+      
+      gt(contested_pps_table)%>%
+        gt_theme_538()%>%
+        cols_label(zone = "Location",
+                   Tight_Contest = "Tight Contest",
+                   Light_Contest = "Light Contest",
+                   Wide_Open = "Wide Open")%>%
+        fmt_number(columns = c(Tight_Contest, Light_Contest, Wide_Open),decimals = 2)%>%
+        gt::cols_align(columns = c(everything()),"center")%>%
+        tab_header(title = "Offensive Contested Shot Points Per Shot")%>%
+        opt_align_table_header("center")
+      
+      
+      
+      
+    } else {
+      # # Table when a specific game is selected
+      # df_filtered <- df[df$Game == input$game, ]
+      # df_filtered %>% gt()
+      
+      
+      
+      gt(contested_pps_table_complete)%>%
+        gt_theme_538()%>%
+        cols_label(zone = "Location",
+                   Tight_Contest = "Tight Contest",
+                   Tight_Contest_dif = "Dif From Avg",
+                   Light_Contest = "Light Contest",
+                   Light_Contest_dif = "Dif From Avg",
+                   Wide_Open = "Wide Open",
+                   Wide_Open_dif = "Dif From Avg")%>%
+        data_color(columns = Tight_Contest_dif ,
+                   target_columns = Tight_Contest_dif ,
+                   palette = c("red", "indianred1","white", "steelblue1","blue"),
+                   domain = c(-1.3,1.3))%>%
+        data_color(columns = Light_Contest_dif ,
+                   target_columns =Light_Contest_dif ,
+                   palette = c("red", "indianred1","white", "steelblue1","blue"),
+                   domain = c(-1.3,1.3))%>%
+        data_color(columns = Wide_Open_dif,
+                   target_columns = Wide_Open_dif ,
+                   palette = c("red", "indianred1","white", "steelblue1","blue"),
+                   domain = c(-1.3,1.3))%>%
+        fmt_number(columns = c(Tight_Contest, Light_Contest, Wide_Open,
+                                Tight_Contest_dif,Light_Contest_dif,Wide_Open_dif),decimals = 2)%>%
+        gt_add_divider(c(Tight_Contest_dif,Light_Contest_dif), color = 'black', include_labels = TRUE) %>%
+        gt::cols_align(columns = c(everything()),"center")%>%
+        tab_header(title = "Offensive Contested Shot Points Per Shot")%>%
+        opt_align_table_header("center")
+      
+      
+      
+      
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+  })
+  
+  
+  
+  
+  
+  
+  output$player_play_types <- render_gt({
+    
+    
+    
+    
+    actions_player_table <- all_games_total%>%
+      filter(Player == input$playerchoose2 &
+               Opponent == input$game_select)%>%
+      mutate(points = case_when(Location == "2P" & Result == "Make" ~ 2 + FT.Points,
+                                Location == "3P" & Result == "Make" ~ 3 + FT.Points,
+                                Result == "Fouled" ~ FT.Points))%>%
+      mutate(across(everything(), ~replace_na(.x, 0)))%>%
+      group_by(Player,Action.Type) %>%
+      mutate(action_count = n(),
+             action_pps = sum(points)/action_count) %>%
+      ungroup()%>%
+      group_by(Player)%>%
+      mutate(total_actions = n(),
+             action_freq = action_count/total_actions)%>%
+      ungroup()%>%
+      reframe(Action.Type,action_count,action_freq,action_pps)%>%
+      distinct(Action.Type,.keep_all = TRUE)%>%
+      arrange(desc(action_freq))
+    
+    
+    
+    
+    
+    gt(actions_player_table)%>%
+      gt_theme_538()%>%
+      #gtExtras::gt_img_rows(athlete_headshot_href)%>%
+      cols_label(Action.Type = "Play Type",
+                 action_count = "Count",
+                 action_freq = "Frequency",
+                 action_pps = "Points Per Shot")%>%
+      data_color(columns = action_pps ,
+                 target_columns = action_pps ,
+                 palette = c("red", "indianred1","white", "steelblue1","blue"),
+                 domain = c(-1,3))%>%
+      fmt_percent(columns = c(action_freq),decimals = 1)%>%
+      fmt_number(columns = c(action_pps),decimals = 2)%>%
+      #gt_add_divider(PLAYER_HEIGHT, color = 'black', include_labels = FALSE) %>%
+      gt::cols_align(columns = c(everything()),"center")%>%
+      tab_header(title = "Player Play Types")%>%
+      opt_align_table_header("center")
+    
+    
+    
+    
+  })
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+}
 
-pullup_player_table <- buck_off_actions%>%
-  filter(Location == "3P" & Result != "Fouled" &
-           (Shot.Type == "Pull Up" | Shot.Type == "Catch and Shoot" ))%>%
-  #mutate(across(everything(), ~replace_na(.x, 0)))%>%
-  group_by(Player,Shot.Type) %>%
-  mutate(count = n(),
-         fg_pct = mean(Result == "Make")) %>%
-  ungroup()%>%
-  group_by(Player)%>%
-  mutate(total_attempts = n(),
-         freq = count/total_attempts)%>%
-  filter(Player == "Bascoe")%>%
-  ungroup()%>%
-  reframe(Shot.Type,count,freq,fg_pct)%>%
-  distinct(Shot.Type,.keep_all = TRUE)%>%
-  arrange(desc(freq))
-
-
-
+shinyApp(ui = ui, server = server,options = list(height = 1080))
 
 
 
